@@ -24,4 +24,5 @@ export const api = {
   scenarios: () => req('/api/scenarios'),
   scenario: (id) => req(`/api/scenarios?id=${encodeURIComponent(id)}`),
   session: (body) => req('/api/session', body),
+  live: () => req('/api/live'),
 };

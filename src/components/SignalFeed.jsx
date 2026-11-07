@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CHANNEL_KO } from '../util.js';
+import LivePanel from './LivePanel.jsx';
 
 export default function SignalFeed({ session, scenario, onMemo, busy, onPick }) {
   const [open, setOpen] = useState(false);
@@ -20,6 +21,8 @@ export default function SignalFeed({ session, scenario, onMemo, busy, onPick }) 
         <h2 id="feed-h">들어온 신호</h2>
         <span className="count">{session?.signals.length ?? 0} / {scenario.signals.length}건</span>
       </div>
+
+      <LivePanel />
 
       <div className="memo">
         {open ? (
