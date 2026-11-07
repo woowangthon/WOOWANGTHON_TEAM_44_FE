@@ -57,6 +57,7 @@ export function useReplay(scenarioId) {
     api.scenario(scenarioId).then((scn) => {
       if (!alive) return;
       setScenario(scn);
+      setClock(toMin(scn.clock.start));
       const saved = store.get(key);
       if (saved) {
         try {
