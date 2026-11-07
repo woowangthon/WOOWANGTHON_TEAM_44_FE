@@ -97,7 +97,7 @@ export default function App() {
         <SignalFeed session={r.session} scenario={scn} onMemo={r.memo} busy={!!r.busy} onPick={pick} />
         <IncidentBoard scenario={scn} session={r.session} focus={focus} onPick={pick} alertInc={r.alertInc} />
         <DecisionPanel key={focusInc?.id ?? 'none'}
-          scenario={scn} incident={focusInc} busy={!!r.busy} onDecide={r.decide} onRedraft={r.redraft} />
+          scenario={scn} incident={focusInc} busy={!!r.busy} onDecide={(pl) => { setSelected(pl.incident_id); return r.decide(pl); }} onRedraft={r.redraft} />
       </main>
 
       <DecisionLog session={r.session} scenario={scn} onPick={pick} />
