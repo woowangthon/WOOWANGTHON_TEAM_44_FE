@@ -64,9 +64,24 @@ export default function DecisionPanel({ scenario, incident: inc, busy, onDecide,
         <span className="count">고르고 사유를 쓰면 시각과 함께 기록됩니다</span>
       </div>
 
+      {inc.decisions.length > 0 && (
+        <div className="block">
+          <h4>이 사건에서 이미 한 결정</h4>
+          <ul className="past">
+            {inc.decisions.map((d, i) => (
+              <li key={i} className={`stamp a-${d.action}`}>
+                <span className="stamp-act">{ACTION_KO[d.action]}</span>
+                <time>{d.at}</time>
+                <span>{d.reason}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <form onSubmit={submit}>
         <fieldset className="actions">
-          <legend>무엇을 할까요</legend>
+          <legend>{inc.decisions.length ? '새로 결정하기' : '무엇을 할까요'}</legend>
           {ACTIONS.map((a) => (
             <label key={a.id} className={`act ${action === a.id ? 'on' : ''}`}>
               <input type="radio" name="action" value={a.id} checked={action === a.id} onChange={() => { setAction(a.id); setDone(null); }} />
@@ -123,26 +138,12 @@ export default function DecisionPanel({ scenario, incident: inc, busy, onDecide,
         )}
 
         <button className="btn primary wide record" disabled={!can}>
-          {action === 'hold' ? '보류로 기록' : '보냈다고 기록'}
+          {action === 'hold' ? '보류로 기록' : '보냈다고 기록 (실제 발송 없음)'}
         </button>
         <p className="hint">실제 전화·문자 발송은 하지 않습니다. 보낸 뒤 이 버튼으로 기록만 남깁니다.</p>
         {done && <p className="ok" role="status">{done}</p>}
       </form>
 
-      {inc.decisions.length > 0 && (
-        <div className="block">
-          <h4>이 사건의 결정</h4>
-          <ul className="past">
-            {inc.decisions.map((d, i) => (
-              <li key={i} className={`stamp a-${d.action}`}>
-                <span className="stamp-act">{ACTION_KO[d.action]}</span>
-                <time>{d.at}</time>
-                <span>{d.reason}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </section>
   );
 }

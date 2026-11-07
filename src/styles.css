@@ -236,3 +236,18 @@ legend .sub, .field .sub { font-weight: 400; font-size: 12px; color: var(--muted
 .live-sec p { margin: 2px 0; }
 .live-sec ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
 .live .src { font-size: 11px; color: var(--muted); }
+
+/* AI 권고와 당직자 결정 나란히 */
+.ai-vs-human { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 14px 0 8px; }
+.ai-vs-human .grade-row { margin: 0; }
+.human-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 10px 12px; border-radius: var(--r-m); background: var(--human); color: #fff; }
+.human-row.a-hold { background: var(--ink-2); }
+.human-row.none { background: transparent; color: var(--muted); border: 1.5px solid var(--line); }
+.human-row .grade-label { color: inherit; opacity: 0.9; }
+.human-row .grade-big { color: inherit; }
+.human-row .grade-why { color: inherit; opacity: 0.9; }
+.scale { font-weight: 400; opacity: 0.8; margin-left: 4px; }
+.block h4 .sub { font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 4px; }
+.inc.mini.sel { border: 2px solid var(--ink); background: #f4f7f9; }
+@media (max-width: 720px) { .ai-vs-human { grid-template-columns: 1fr; } }
+.decide > .block:first-of-type { margin: 0 0 16px; }

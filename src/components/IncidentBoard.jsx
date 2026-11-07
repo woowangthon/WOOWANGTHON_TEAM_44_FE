@@ -1,15 +1,17 @@
 import { GRADE_KO, STATUS_KO, ACTION_KO } from '../util.js';
 
+const STATUS_HELP = { met: '기준을 넘었습니다', approaching: '기준에 가까워졌거나 일부 조건만 충족했습니다', not_met: '기준 아래입니다', unknown: '판정할 자료가 아직 없습니다' };
+
 function Criteria({ items, scenario }) {
   if (!items.length) return null;
   const clause = (id) => scenario.manual.clauses.find((c) => c.id === id);
   return (
     <div className="block">
-      <h4>시설 통제 기준</h4>
+      <h4>시설 통제 기준 <span className="sub">도달은 기준 충족, 접근은 일부 조건만 충족</span></h4>
       <ul className="criteria">
         {items.map((c) => (
           <li key={c.id} className={`crit ${c.status}`}>
-            <span className={`st st-${c.status}`}>{STATUS_KO[c.status]}</span>
+            <span className={`st st-${c.status}`} title={STATUS_HELP[c.status]}>{STATUS_KO[c.status]}</span>
             <div>
               <div className="crit-label">{c.label}</div>
               <div className="crit-obs">지금: {c.observed}{c.evidence?.length ? ` (${c.evidence.join(', ')})` : ''}</div>
@@ -22,14 +24,14 @@ function Criteria({ items, scenario }) {
   );
 }
 
-function Card({ inc, scenario, session, focused, onPick, alert }) {
+function Card({ inc, scenario, session, focused, onPick, alert, selected }) {
   const fac = scenario.facilities.find((f) => f.id === inc.facility_id);
   const mgr = fac && scenario.contacts.find((k) => k.id === fac.manager_contact);
   const lastNudge = inc.nudges.at(-1);
   const lastDecision = inc.decisions.at(-1);
   if (!focused) {
     return (
-      <button className={`inc mini g-${inc.grade}`} onClick={() => onPick(inc.id)}>
+      <button className={`inc mini g-${inc.grade} ${selected ? 'sel' : ''}`} role="tab" aria-selected={!!selected} onClick={() => onPick(inc.id)}>
         <span className="inc-no">#{inc.no}</span>
         <span className="inc-title">{inc.title}</span>
         <span className={`grade g-${inc.grade}`}>{GRADE_KO[inc.grade]}</span>
@@ -45,10 +47,21 @@ function Card({ inc, scenario, session, focused, onPick, alert }) {
         {fac && <p className="fac">관련 시설: {fac.name}{mgr ? `, 관리주체는 ${mgr.org}` : ''}</p>}
       </header>
 
-      <div className={`grade-row g-${inc.grade}`}>
-        <span className="grade-label">AI 권고</span>
-        <span className="grade-big">{GRADE_KO[inc.grade]}</span>
-        <span className="grade-why">{inc.grade_why.join(', ')}</span>
+      <div className="ai-vs-human">
+        <div className={`grade-row g-${inc.grade}`}>
+          <span className="grade-label">AI 권고 <span className="scale">관찰, 보고 권고, 통제 검토 요청 권고 순으로 높음</span></span>
+          <span className="grade-big">{GRADE_KO[inc.grade]}</span>
+          <span className="grade-why">{inc.grade_why.join(', ')}</span>
+        </div>
+        <div className={`human-row ${lastDecision ? `a-${lastDecision.action}` : 'none'}`}>
+          <span className="grade-label">당직자 결정</span>
+          {lastDecision ? (
+            <>
+              <span className="grade-big">{ACTION_KO[lastDecision.action]}</span>
+              <span className="grade-why">{lastDecision.at}, {lastDecision.reason}</span>
+            </>
+          ) : <span className="grade-big">아직 결정 전</span>}
+        </div>
       </div>
 
       {lastNudge && (!lastDecision || lastNudge.at >= lastDecision.at) && (
@@ -99,8 +112,8 @@ export default function IncidentBoard({ scenario, session, focus, onPick, alertI
       </div>
       {!incs.length && <p className="empty">아직 사건이 없습니다.</p>}
       {incs.length > 1 && (
-        <div className="minis">
-          {incs.filter((i) => i.id !== focus).map((i) => <Card key={i.id} inc={i} scenario={scenario} session={session} onPick={onPick} />)}
+        <div className="minis" role="tablist" aria-label="사건 목록">
+          {incs.map((i) => <Card key={i.id} inc={i} scenario={scenario} session={session} onPick={onPick} selected={i.id === focus} />)}
         </div>
       )}
       {focused && <Card inc={focused} scenario={scenario} session={session} focused onPick={onPick} alert={alertInc === focused.id} />}

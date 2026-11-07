@@ -13,7 +13,7 @@ export default function DecisionLog({ session, scenario, onPick }) {
     <section className="log" aria-labelledby="log-h">
       <div className="log-head">
         <h2 id="log-h">결정 로그</h2>
-        <span className="count">AI가 한 일은 테두리, 당직자가 한 결정은 채운 칸으로 남습니다</span>
+        <span className="count">점선 칸은 AI가 한 일, 채운 칸은 당직자 결정(초록은 보고·요청, 남색은 보류)</span>
       </div>
       {!items.length && <p className="empty">사건이 생기면 권고와 결정이 시간순으로 쌓입니다.</p>}
       <ol className="timeline" ref={ref}>
