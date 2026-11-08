@@ -10,12 +10,13 @@ export function useReplay(scenarioId) {
   const [session, setSession] = useState(null);
   const [clock, setClock] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(60);
+  const [speed, setSpeed] = useState(120);
   const [autoPause, setAutoPause] = useState(true);
   const [busy, setBusy] = useState(null); // 처리 중인 작업 설명
   const [error, setError] = useState(null);
   const [needCode, setNeedCode] = useState(false);
   const [alertInc, setAlertInc] = useState(null); // 방금 권고가 올라간 사건
+  const [pending, setPending] = useState(null); // AI가 지금 읽고 있는 신호(원문 그대로 먼저 보여 준다)
   const busyRef = useRef(false);
   const clockRef = useRef(0);
   const sessionRef = useRef(null);
@@ -79,9 +80,12 @@ export function useReplay(scenarioId) {
   const advanceOne = useCallback(async () => {
     const s = sessionRef.current;
     const sig = scenario.signals[s.cursor];
+    if (busyRef.current) return;
     const before = Object.fromEntries(s.incidents.map((i) => [i.id, i.grade]));
+    setPending(sig);
     const r = await run(`AI가 신호 ${sig.id}를 읽는 중`, () =>
       api.session({ op: 'advance', scenario_id: scenario.id, state: s, until: sig.t, max: 1 }));
+    setPending(null);
     if (!r) return;
     setSession(r.state);
     const up = r.state.incidents.find((i) => gradeRank(i.grade) >= 1 && gradeRank(i.grade) > gradeRank(before[i.id] ?? 'observe'));
@@ -111,11 +115,17 @@ export function useReplay(scenarioId) {
     return () => clearInterval(id);
   }, [playing, busy, scenario, session, speed, advanceOne]);
 
-  const memo = (body, from) => run('AI가 전화 메모를 읽는 중', async () => {
-    const r = await api.session({ op: 'memo', scenario_id: scenario.id, state: withNow(sessionRef.current), body, from });
-    setSession(r.state);
-    return r;
-  });
+  const memo = async (body, from) => {
+    if (busyRef.current) return null;
+    setPending({ id: '직접 입력', t: fmt(clockRef.current), channel: 'phone_memo', from: from?.trim() || '당직자 입력', body: body.trim(), live: true });
+    const out = await run('AI가 전화 메모를 읽는 중', async () => {
+      const r = await api.session({ op: 'memo', scenario_id: scenario.id, state: withNow(sessionRef.current), body, from });
+      setSession(r.state);
+      return r;
+    });
+    setPending(null);
+    return out;
+  };
   const decide = (payload) => run('결정 기록 중', async () => {
     const r = await api.session({ op: 'decide', scenario_id: scenario.id, state: withNow(sessionRef.current), ...payload });
     setSession(r.state);
@@ -142,7 +152,7 @@ export function useReplay(scenarioId) {
 
   return {
     scenario, session, clock, playing, setPlaying, speed, setSpeed, autoPause, setAutoPause,
-    busy, error, setError, needCode, saveCode, alertInc, setAlertInc, memo, decide, redraft, handover, reset, skip,
+    busy, error, setError, needCode, saveCode, alertInc, setAlertInc, pending, memo, decide, redraft, handover, reset, skip,
     done: scenario && session && session.cursor >= scenario.signals.length,
   };
 }

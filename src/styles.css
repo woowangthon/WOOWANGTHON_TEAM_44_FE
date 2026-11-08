@@ -251,3 +251,49 @@ legend .sub, .field .sub { font-weight: 400; font-size: 12px; color: var(--muted
 .inc.mini.sel { border: 2px solid var(--ink); background: #f4f7f9; }
 @media (max-width: 720px) { .ai-vs-human { grid-template-columns: 1fr; } }
 .decide > .block:first-of-type { margin: 0 0 16px; }
+
+/* 출처 표지: AI는 점선, 규칙표는 실선, 당직자는 채움 */
+.src { display: inline-block; font-size: 11px; font-weight: 600; line-height: 1.5; padding: 0 5px; border-radius: 3px; vertical-align: 1px; white-space: nowrap; letter-spacing: 0; }
+.src-ai { border: 1px dashed #3b5b8a; color: #2c4a75; background: #eef3fa; }
+.src-rule { border: 1px solid #5b6c7e; color: #33495e; background: #f2f4f6; }
+.src-human { border: 1px solid var(--human); color: #fff; background: var(--human); }
+.col-head h2 .src, .block h4 .src, .grade-label .src { margin-left: 6px; }
+.legend { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: 12px; color: var(--muted); }
+.legend > span { display: inline-flex; gap: 5px; align-items: baseline; }
+.human-row:not(.none) .src-human { background: transparent; border-color: rgba(255,255,255,0.85); }
+/* 권고 등급은 규칙표 결과이므로 실선(점선은 AI 표시) */
+.grade-row { border-style: solid; }
+.grade { border-style: solid; }
+.cite-why .src { margin-right: 4px; }
+
+/* 첫 방문 안내 */
+.intro { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-m); padding: 18px 22px; max-width: 880px; }
+.intro h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.intro-lead { margin: 0 0 10px; font-size: 14.5px; color: var(--ink-2); }
+.intro-steps { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 6px; font-size: 14px; }
+.intro-steps b { font-weight: 700; }
+.intro-who { border-top: 1px solid var(--line-2); padding-top: 10px; display: grid; gap: 4px; font-size: 13.5px; }
+.intro-who p { margin: 0; }
+.intro-who .src { min-width: 46px; text-align: center; margin-right: 6px; }
+.intro-check { color: var(--muted); font-size: 13px; margin-top: 4px !important; }
+
+/* 상태 줄 + AI 검증 현황 */
+.status-row { display: flex; flex-wrap: wrap; align-items: stretch; background: var(--panel); border-bottom: 1px solid var(--line); }
+.status-row .ai-status { flex: 1 1 360px; border-bottom: 0; }
+.verify-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; padding: 6px 20px; font-size: 12.5px; color: var(--ink-2); border-left: 1px solid var(--line-2); }
+.vb-title { font-weight: 700; color: #2c4a75; border: 1px dashed #3b5b8a; background: #eef3fa; border-radius: 3px; padding: 0 6px; font-size: 12px; }
+.vb-item { white-space: nowrap; }
+.vb-item b { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); margin: 0 1px; display: inline-block; animation: vbflash 1.2s ease-out; }
+.vb-item.bad b { color: var(--ctl); }
+.vb-item.warn b { color: var(--rep); }
+@keyframes vbflash { 0% { background: #fff1a8; } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .vb-item b { animation: none; } }
+@media (max-width: 720px) { .verify-bar { padding: 6px 16px; border-left: 0; border-top: 1px solid var(--line-2); } }
+.ev.rule { border: 1.5px solid var(--g, var(--obs)); color: var(--ink); border-radius: var(--r-s); background: var(--panel); }
+.ev.rule.nudge-ev { border-color: var(--ink); }
+.sig.pending { border-left-color: var(--focus); background: #f4f8fd; }
+.sig-ai.reading { color: #2c4a75; }
+.sig-ai.reading::after { content: '…'; animation: pulse 1.2s ease-in-out infinite; }
+.sig-ai .src { margin-right: 2px; }
+.draft-check { font-size: 12.5px; color: var(--human); margin: 4px 0 8px; }
+.col-head h2 .src { vertical-align: 3px; }

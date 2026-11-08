@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { GRADE_KO, ACTION_KO, gradeRank } from '../util.js';
+import Src from './Src.jsx';
 
 const ACTIONS = [
   { id: 'report', label: '보고', help: '당직사령·담당 부서에 알린다' },
@@ -28,7 +29,7 @@ export default function DecisionPanel({ scenario, incident: inc, busy, onDecide,
   if (!inc) {
     return (
       <section className="col decide" aria-labelledby="dec-h">
-        <div className="col-head"><h2 id="dec-h">결정</h2></div>
+        <div className="col-head"><h2 id="dec-h">결정<Src k="human" /></h2></div>
         <p className="empty">사건이 생기면 여기서 보고, 통제 검토 요청, 보류 중 하나를 고릅니다. 결정은 당직자가 합니다.</p>
       </section>
     );
@@ -55,12 +56,12 @@ export default function DecisionPanel({ scenario, incident: inc, busy, onDecide,
   };
 
   const followNote = action && action !== 'hold' && gradeRank(action) !== gradeRank(inc.grade)
-    ? `AI 권고(${GRADE_KO[inc.grade]})와 다른 결정입니다. 사유가 그대로 기록됩니다.` : null;
+    ? `권고 등급(${GRADE_KO[inc.grade]})과 다른 결정입니다. 사유가 그대로 기록됩니다.` : null;
 
   return (
     <section className="col decide" aria-labelledby="dec-h">
       <div className="col-head">
-        <h2 id="dec-h">결정, 사건 #{inc.no}</h2>
+        <h2 id="dec-h">결정, 사건 #{inc.no}<Src k="human" /></h2>
         <span className="count">고르고 사유를 쓰면 시각과 함께 기록됩니다</span>
       </div>
 
@@ -126,8 +127,10 @@ export default function DecisionPanel({ scenario, incident: inc, busy, onDecide,
                   <span>문자 초안 <span className="sub">{sms.length}자</span></span>
                   <textarea rows={3} value={sms} onChange={(e) => { setDirty((d) => ({ ...d, m: true })); setSms(e.target.value); }} />
                 </label>
-                <p className="rationale"><strong>AI가 든 근거</strong> {draft.rationale} <span className="sid">({draft.evidence_signal_ids.join(', ')})</span></p>
-                {draft.warnings?.length > 0 && <p className="blocked">검증 경고: {draft.warnings.join(' / ')}</p>}
+                <p className="rationale"><Src k="ai">AI가 든 근거</Src> {draft.rationale} <span className="sid">({draft.evidence_signal_ids.join(', ')})</span></p>
+                {draft.warnings?.length > 0
+                  ? <p className="blocked">검증 경고: {draft.warnings.join(' / ')}</p>
+                  : <p className="draft-check">✓ 초안의 수치·시각 {draft.claims_checked ?? '모든'}{draft.claims_checked != null ? '개' : ''}를 근거 신호와 대조해 모두 확인{draft.attempts > 1 ? '. 첫 답은 검증에 걸려 사유를 붙여 다시 받은 초안입니다' : ''}</p>}
                 <button type="button" className="btn ghost small" disabled={busy} onClick={() => { setDirty({ r: false, s: false, m: false }); onRedraft(inc.id); }}>초안 다시 만들기</button>
               </>
             ) : (

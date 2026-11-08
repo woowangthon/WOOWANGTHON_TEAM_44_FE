@@ -7,6 +7,7 @@ import IncidentBoard from './components/IncidentBoard.jsx';
 import DecisionPanel from './components/DecisionPanel.jsx';
 import DecisionLog from './components/DecisionLog.jsx';
 import HandoverModal from './components/HandoverModal.jsx';
+import VerifyBar from './components/VerifyBar.jsx';
 
 const SPEEDS = [30, 60, 120];
 
@@ -82,8 +83,11 @@ export default function App() {
         <span className="no-send">AI는 어떤 조치도 실행하지 않고, 이 화면에서는 실제 발송도 하지 않습니다.</span>
       </div>
 
-      <div className={`ai-status ${r.busy ? 'on' : ''}`} aria-live="polite">
-        {r.busy ? <>{r.busy} · 그동안 시계를 멈춥니다</> : r.error ? <span className="err">{r.error} <button className="link" onClick={() => r.setError(null)}>닫기</button></span> : r.playing ? '재생 중' : r.done ? '모든 신호를 받았습니다. 남은 결정을 마치고 인계 보고서를 만드세요.' : r.alertInc ? `사건 #${incidents.find((i) => i.id === r.alertInc)?.no}의 AI 권고가 올라 멈췄습니다. 결정하거나 재생을 눌러 이어 가세요.` : '멈춤'}
+      <div className="status-row">
+        <div className={`ai-status ${r.busy ? 'on' : ''}`} aria-live="polite">
+          {r.busy ? <>{r.busy} · 그동안 시계를 멈춥니다</> : r.error ? <span className="err">{r.error}. 재생을 누르면 같은 신호를 다시 처리합니다. <button className="link" onClick={() => r.setError(null)}>닫기</button></span> : r.playing ? '재생 중' : r.done ? '모든 신호를 받았습니다. 남은 결정을 마치고 인계 보고서를 만드세요.' : r.alertInc ? `사건 #${incidents.find((i) => i.id === r.alertInc)?.no}의 권고 등급이 올라 멈췄습니다. 근거를 보고 결정하거나 재생을 눌러 이어 가세요.` : r.session?.signals.length ? '멈춤' : '멈춤 · 「재생」을 누르면 시작합니다'}
+        </div>
+        <VerifyBar session={r.session} />
       </div>
 
       {r.needCode && (
@@ -94,8 +98,8 @@ export default function App() {
       )}
 
       <main className="grid">
-        <SignalFeed session={r.session} scenario={scn} onMemo={r.memo} busy={!!r.busy} onPick={pick} />
-        <IncidentBoard scenario={scn} session={r.session} focus={focus} onPick={pick} alertInc={r.alertInc} />
+        <SignalFeed session={r.session} scenario={scn} onMemo={r.memo} busy={!!r.busy} onPick={pick} pending={r.pending} />
+        <IncidentBoard scenario={scn} session={r.session} focus={focus} onPick={pick} alertInc={r.alertInc} speed={r.speed} />
         <DecisionPanel key={focusInc?.id ?? 'none'}
           scenario={scn} incident={focusInc} busy={!!r.busy} onDecide={(pl) => { setSelected(pl.incident_id); return r.decide(pl); }} onRedraft={r.redraft} />
       </main>
