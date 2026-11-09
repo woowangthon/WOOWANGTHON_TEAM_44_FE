@@ -5,8 +5,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { incColor } from '../util.js';
 
-const TILE = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+const TILE = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 function placesOf(scenario, sig) {
   const ids = sig.norm?.place_ids ?? [];
@@ -20,7 +20,7 @@ export default function SituationMap({ scenario, session, pending, focus, onPick
 
   useEffect(() => {
     const m = L.map(box.current, { zoomControl: true, attributionControl: true, scrollWheelZoom: false });
-    L.tileLayer(TILE, { attribution: ATTR, subdomains: 'abcd', maxZoom: 18 }).addTo(m);
+    L.tileLayer(TILE, { attribution: ATTR, maxZoom: 18 }).addTo(m);
     layer.current = L.layerGroup().addTo(m);
     map.current = m;
     return () => { m.remove(); map.current = null; };

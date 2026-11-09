@@ -54,4 +54,4 @@ npm test                 # 테스트 후 빌드 확인
 
 ## 사용한 외부 기술
 
-React, Vite, Leaflet(지도), 지도 타일 © OpenStreetMap contributors © CARTO, marked(인계 보고서 미리보기), IBM Plex Sans KR 글꼴을 사용했습니다.
+React, Vite, Leaflet(지도), 지도 타일 © OpenStreetMap contributors, marked(인계 보고서 미리보기), IBM Plex Sans KR 글꼴을 사용했습니다.
