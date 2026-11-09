@@ -309,7 +309,7 @@ legend .sub, .field .sub { font-weight: 400; font-size: 12px; color: var(--muted
 /* 상황판 */
 .situation { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 12px; }
 .map-wrap, .chart { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-m); padding: 8px; margin: 0; min-width: 0; }
-.map { height: 270px; border-radius: var(--r-s); background: #dfe7ee; }
+.map { height: 270px; border-radius: var(--r-s); background: #dfe7ee; isolation: isolate; }
 .map-note { margin: 6px 2px 0; font-size: 12px; color: var(--muted); }
 .map-pin { background: none; border: 0; }
 .map-pin .dot { display: grid; place-items: center; border-radius: 50%; background: var(--c); color: #fff; font-weight: 700; font-size: 12px; box-shadow: 0 0 0 3px rgba(255,255,255,0.9), 0 1px 4px rgba(0,0,0,0.35); }

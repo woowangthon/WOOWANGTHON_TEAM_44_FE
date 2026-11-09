@@ -20,7 +20,7 @@ export default function SignalFeed({ session, scenario, onMemo, busy, onPick, pe
     <section className="col feed" aria-labelledby="feed-h">
       <div className="col-head">
         <h2 id="feed-h">들어온 신호</h2>
-        <span className="count">{session?.signals.length ?? 0} / {scenario.signals.length}건</span>
+        <span className="count">{signals.filter((s) => !s.live).length} / {scenario.signals.length}건{signals.some((s) => s.live) ? ` + 직접 입력 ${signals.filter((s) => s.live).length}건` : ''}</span>
       </div>
 
       <LivePanel />

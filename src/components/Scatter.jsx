@@ -34,7 +34,7 @@ export default function Scatter({ scenario, session, pending }) {
           );
         })}
       </div>
-      <p className="scatter-foot">{scenario.signals.length}건 중 {sigs.length}건이 들어온 시각까지입니다. 위의 「당직메이트로 보기」를 누르면 같은 신호를 사건별로 묶은 화면으로 돌아갑니다.</p>
+      <p className="scatter-foot">{scenario.signals.length}건 중 {sigs.filter((s) => !s.live).length}건이 들어온 시각까지입니다{sigs.some((s) => s.live) ? `(직접 입력 ${sigs.filter((s) => s.live).length}건 별도)` : ''}. 위의 「당직메이트로 보기」를 누르면 같은 신호를 사건별로 묶은 화면으로 돌아갑니다.</p>
     </section>
   );
 }
