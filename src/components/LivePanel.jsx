@@ -19,7 +19,7 @@ export default function LivePanel() {
   return (
     <div className="live">
       <button className="btn wide live-toggle" aria-expanded={open} onClick={toggle}>
-        {open ? '실시간 연동 닫기' : '실시간 연동 보기 (충청북도 실제 데이터)'}
+        {open ? '실시간 연동 닫기' : '실시간 연동 (충북 실제 데이터)'}
       </button>
       {open && (
         <div className="live-body">

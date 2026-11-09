@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CHANNEL_KO } from '../util.js';
+import { CHANNEL_KO, incColor } from '../util.js';
 import LivePanel from './LivePanel.jsx';
 import Src from './Src.jsx';
 
@@ -28,7 +28,7 @@ export default function SignalFeed({ session, scenario, onMemo, busy, onPick, pe
       <div className="memo">
         {open ? (
           <form onSubmit={submit} className="memo-form">
-            <input placeholder="누구에게서 (예: 가온3동 주민)" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <input placeholder="누구에게서 (예: 복대동 주민)" value={from} onChange={(e) => setFrom(e.target.value)} />
             <textarea rows={3} placeholder="받아 적은 내용" value={body} onChange={(e) => setBody(e.target.value)} />
             <div className="row">
               <button className="btn primary" disabled={busy || !body.trim()}>신호로 넣기</button>
@@ -56,13 +56,15 @@ export default function SignalFeed({ session, scenario, onMemo, busy, onPick, pe
           </li>
         )}
         {signals.map((s) => (
-          <li key={s.id} className={`sig ${s.status} ${s.live ? 'live' : ''}`}>
+          <li key={s.id} className={`sig ${s.status} ${s.live ? 'live' : ''}`} style={s.incident_id ? { '--c': incColor(incNo[s.incident_id]) } : undefined}>
             <div className="sig-meta">
               <time>{s.t}</time>
               <span className={`ch ch-${s.channel}`}>{CHANNEL_KO[s.channel]}</span>
               <span className="from">{s.from}</span>
             </div>
             <p className={`body ${s.raw_display ? 'raw' : ''}`}>{s.body}</p>
+            {s.record?.basis === 'added' && <p className="basis added" title={s.record.note}>가상 추가 · 시연용 일상 민원</p>}
+            {s.record?.source && s.record.basis !== 'added' && <p className="basis" title={s.record.note ?? ''}>{/실측/.test(s.record.source) ? '실측' : s.record.basis === 'record' ? '보도 기반' : '공식 기록 기반'} · {s.record.source}</p>}
             {s.raw_display && <p className="raw-note">재난문자 원문을 고치지 않고 표시합니다</p>}
             {s.time_note && <p className="raw-note">시각 출처 차이: {s.time_note}</p>}
             <div className="sig-ai">
@@ -71,7 +73,7 @@ export default function SignalFeed({ session, scenario, onMemo, busy, onPick, pe
             <div className="sig-foot">
               <span className="sid">{s.id}{s.live ? ' · 직접 입력' : ''}</span>
               {s.status === 'incident'
-                ? <button className="chip link" title={s.link?.by === 'llm' ? `AI가 묶음: ${s.link.reason ?? ''}` : `규칙으로 묶음: ${s.link?.reason ?? ''}`} onClick={() => onPick(s.incident_id)}>사건 #{incNo[s.incident_id]}에 묶임{s.link?.by === 'llm' ? ' · AI 판단' : ''}</button>
+                ? <button className="chip link inc-chip" style={{ '--c': incColor(incNo[s.incident_id]) }} title={s.link?.by === 'llm' ? `AI가 묶음: ${s.link.reason ?? ''}` : `규칙으로 묶음: ${s.link?.reason ?? ''}`} onClick={() => onPick(s.incident_id)}>사건 #{incNo[s.incident_id]}에 묶임{s.link?.by === 'llm' ? ' · AI 판단' : ''}</button>
                 : <span className="chip muted">사건 아님(시 전체 안내)</span>}
             </div>
           </li>

@@ -1,4 +1,4 @@
-import { GRADE_KO, STATUS_KO, ACTION_KO, toMin } from '../util.js';
+import { GRADE_KO, STATUS_KO, ACTION_KO, CHANNEL_KO, toMin, incColor, citeOrder } from '../util.js';
 import Src from './Src.jsx';
 
 const STATUS_HELP = { met: '기준을 넘었습니다', approaching: '기준에 가까워졌거나 일부 조건만 충족했습니다', not_met: '기준 아래입니다', unknown: '판정할 자료가 아직 없습니다' };
@@ -25,6 +25,22 @@ function Criteria({ items, scenario }) {
   );
 }
 
+function Cite({ c }) {
+  return (
+    <li>
+      <div className="cite-head">{c.heading} <span className="verified">원문과 글자 일치 확인</span></div>
+      <blockquote>{c.quote}</blockquote>
+      <p className="cite-why"><Src k="ai">AI 설명</Src> {c.why}</p>
+    </li>
+  );
+}
+
+function channelMix(session, inc) {
+  const n = {};
+  inc.signal_ids.forEach((sid) => { const ch = CHANNEL_KO[session.signals.find((x) => x.id === sid)?.channel] ?? '기타'; n[ch] = (n[ch] ?? 0) + 1; });
+  return Object.entries(n).map(([k, v]) => `${k} ${v}`).join(', ');
+}
+
 function Card({ inc, scenario, session, focused, onPick, alert, selected }) {
   const fac = scenario.facilities.find((f) => f.id === inc.facility_id);
   const mgr = fac && scenario.contacts.find((k) => k.id === fac.manager_contact);
@@ -32,7 +48,7 @@ function Card({ inc, scenario, session, focused, onPick, alert, selected }) {
   const lastDecision = inc.decisions.at(-1);
   if (!focused) {
     return (
-      <button className={`inc mini g-${inc.grade} ${selected ? 'sel' : ''}`} role="tab" aria-selected={!!selected} onClick={() => onPick(inc.id)}>
+      <button className={`inc mini g-${inc.grade} ${selected ? 'sel' : ''}`} style={{ '--c': incColor(inc.no) }} role="tab" aria-selected={!!selected} onClick={() => onPick(inc.id)}>
         <span className="inc-no">#{inc.no}</span>
         <span className="inc-title">{inc.title}</span>
         <span className={`grade g-${inc.grade}`}>{GRADE_KO[inc.grade]}</span>
@@ -41,9 +57,9 @@ function Card({ inc, scenario, session, focused, onPick, alert, selected }) {
     );
   }
   return (
-    <article className={`inc full g-${inc.grade} ${alert ? 'alert' : ''}`} aria-labelledby={`inc-${inc.id}`}>
+    <article className={`inc full g-${inc.grade} ${alert ? 'alert' : ''}`} style={{ '--c': incColor(inc.no) }} aria-labelledby={`inc-${inc.id}`}>
       <header className="inc-head">
-        <span className="inc-no">사건 #{inc.no}</span>
+        <span className="inc-no"><i className="inc-dot" />사건 #{inc.no}</span>
         <h3 id={`inc-${inc.id}`}>{inc.title}</h3>
         {fac && <p className="fac">관련 시설: {fac.name}{mgr ? `, 관리주체는 ${mgr.org}` : ''}</p>}
       </header>
@@ -77,27 +93,27 @@ function Card({ inc, scenario, session, focused, onPick, alert, selected }) {
         <p className="manual-title">{scenario.manual.title}</p>
         {inc.citations.length ? (
           <ul className="cites">
-            {inc.citations.map((c, i) => (
-              <li key={i}>
-                <div className="cite-head">{c.heading} <span className="verified">원문과 글자 일치 확인</span></div>
-                <blockquote>{c.quote}</blockquote>
-                <p className="cite-why"><Src k="ai">AI 설명</Src> {c.why}</p>
-              </li>
-            ))}
+            {citeOrder(inc.citations).slice(0, 1).map((c, i) => <Cite key={i} c={c} />)}
           </ul>
         ) : <p className="muted">{inc.none_reason ?? '아직 찾지 않았습니다'}</p>}
+        {inc.citations.length > 1 && (
+          <details className="more">
+            <summary>조항 {inc.citations.length - 1}개 더 보기</summary>
+            <ul className="cites">{citeOrder(inc.citations).slice(1).map((c, i) => <Cite key={i} c={c} />)}</ul>
+          </details>
+        )}
         {inc.citations_blocked?.length > 0 && <p className="blocked">원문과 다른 인용 {inc.citations_blocked.length}건은 검증에서 걸러 표시하지 않았습니다.</p>}
       </div>
 
-      <div className="block">
-        <h4>묶인 신호 {inc.signal_ids.length}건 <span className="sub">같은 장소·시설이면 규칙으로, 애매하면 AI가 묶습니다</span></h4>
+      <details className="block more">
+        <summary><b>묶인 신호 {inc.signal_ids.length}건</b> <span className="sub">{channelMix(session, inc)}. 같은 장소·시설이면 규칙으로, 애매하면 AI가 묶습니다</span></summary>
         <ul className="bound">
           {inc.signal_ids.map((sid) => {
             const s = session.signals.find((x) => x.id === sid);
-            return <li key={sid}><time>{s.t}</time> <span className="sid">{sid}</span> {s.norm.one_line}</li>;
+            return <li key={sid}><time>{s.t}</time> <span className="sid">{sid}</span> <span className="ch">{CHANNEL_KO[s.channel]}</span> {s.norm.one_line}</li>;
           })}
         </ul>
-      </div>
+      </details>
     </article>
   );
 }
@@ -108,24 +124,14 @@ function Intro({ scenario, speed }) {
   const mins = Math.max(1, Math.round(span / speed));
   return (
     <div className="intro" aria-labelledby="intro-h">
-      <h3 id="intro-h">처음 오셨다면, 이렇게 보시면 됩니다</h3>
-      <p className="intro-lead">
-        새벽에 혼자 근무하는 지자체 당직자에게 전화 메모, 기관 통보문, 재난문자, 112·119 공조, 시스템 알림이 흩어져 들어옵니다.
-        당직메이트는 이 신호를 사건별로 묶고, 시설 통제 기준과 매뉴얼 조항을 원문 그대로 보여 주며, 보고 초안을 올립니다.
-        보고할지, 통제 검토를 요청할지, 보류할지는 당직자가 정합니다.
-      </p>
+      <h3 id="intro-h">처음 오셨다면</h3>
+      <p className="intro-lead">{scenario.intro ?? scenario.disclaimer}</p>
       <ol className="intro-steps">
-        <li><b>위의 「재생」</b>을 누르면 {scenario.clock.start}~{scenario.clock.end}의 합성 신호 {scenario.signals.length}건이 시각대로 들어옵니다. 지금 {speed}배속이면 시계로 약 {mins}분이고, AI가 신호를 읽는 동안(건당 5~15초)에는 시계를 멈춥니다. 「다음 신호로」는 신호가 없는 시간만 건너뜁니다.</li>
-        <li><b>권고 등급이 오르면 재생이 멈춥니다.</b> 가운데에서 기준 판정과 매뉴얼 인용을, 오른쪽에서 AI 초안과 수신처 제안을 확인합니다.</li>
-        <li><b>오른쪽에서 결정</b>합니다. 보고, 통제 검토 요청, 보류 중 하나를 사유와 함께 고르면 시각과 함께 아래 결정 로그에 남습니다. 실제 전화·문자 발송은 없습니다.</li>
-        <li><b>「인계 보고서 만들기」</b>로 아침 인계 문서를 만듭니다. 결정하지 않은 사건은 확인 사항으로 넘어갑니다.</li>
+        <li><b>재생</b><span>{scenario.clock.start}~{scenario.clock.end}의 신호 {scenario.signals.length}건이 시각대로 들어옵니다. {speed}배속이면 약 {mins}분, AI가 읽는 동안은 시계가 멈춥니다.</span></li>
+        <li><b>권고가 오르면 멈춤</b><span>지도와 수위, 기준 판정, 매뉴얼 인용, 초안을 보고 오른쪽에서 보고, 통제 검토 요청, 보류 중 하나를 사유와 함께 고릅니다.</span></li>
+        <li><b>인계 보고서</b><span>아침 인계 문서를 만듭니다. 결정하지 않은 사건은 확인 사항으로 넘어갑니다.</span></li>
       </ol>
-      <div className="intro-who">
-        <p><Src k="ai" /> 사람이 쓴 신호 읽기, 애매한 사건 묶기, 매뉴얼 조항 고르기, 보고 초안, 인계 요약</p>
-        <p><Src k="rule" /> 기준 도달 판정, 권고 등급, 재촉. 신호에서 뽑은 사실을 코드의 규칙표에 대어 정하고, AI가 등급을 바꾸지 않습니다</p>
-        <p><Src k="human" /> 모든 결정과 사유</p>
-        <p className="intro-check">AI가 쓴 인용은 매뉴얼 원문과, 수치·시각은 근거 신호와 대조해 통과한 것만 올립니다. 대조 결과는 위쪽 「AI 검증」 줄에 쌓입니다.</p>
-      </div>
+      <p className="intro-who"><Src k="ai" /> 읽기, 묶기, 조항 찾기, 초안 <Src k="rule" /> 기준 판정, 권고 등급, 재촉 <Src k="human" /> 모든 결정. 위의 「없을 때 보기」를 누르면 같은 신호가 원래 어떻게 흩어져 들어오는지 볼 수 있습니다.</p>
     </div>
   );
 }

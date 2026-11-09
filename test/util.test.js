@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { toMin, fmt, gradeRank, GRADE_KO, ACTION_KO } from '../src/util.js';
+import { toMin, fmt, gradeRank, GRADE_KO, ACTION_KO, incColor, citeOrder } from '../src/util.js';
 
 test('시각 변환', () => {
   assert.equal(toMin('03:30'), 210);
@@ -26,4 +26,11 @@ test('공개 화면 코드에 API 키나 서버 비밀값 이름이 없다', () 
     const s = readFileSync(new URL(f, import.meta.url), 'utf8');
     assert.ok(!/sk-ant-|ANTHROPIC_API_KEY|DEMO_ACCESS_CODE/.test(s), f);
   }
+});
+
+test('사건 색은 번호마다 다르고 8개마다 돌아온다, 「기록」 조항은 인용 맨 뒤로', () => {
+  assert.notEqual(incColor(1), incColor(2));
+  assert.equal(incColor(1), incColor(9));
+  const cs = [{ heading: '제10조(기록)' }, { heading: '제3조 제1항 제2호' }];
+  assert.equal(citeOrder(cs)[0].heading, '제3조 제1항 제2호');
 });

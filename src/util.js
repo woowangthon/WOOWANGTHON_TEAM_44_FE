@@ -11,3 +11,8 @@ export const fmt = (min) => {
   return `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 };
 export const gradeRank = (g) => ['observe', 'report', 'control_review'].indexOf(g);
+// 사건 번호별 색(지도 점, 신호 띠, 사건 탭에 같은 색)
+const INC_COLORS = ['#2563eb', '#c2410c', '#7c3aed', '#0f766e', '#be185d', '#4d7c0f', '#b45309', '#0369a1'];
+export const incColor = (no) => INC_COLORS[((no ?? 1) - 1) % INC_COLORS.length];
+// 「기록」 조항은 어느 사건에나 해당하므로 맨 뒤로 보낸다
+export const citeOrder = (cs = []) => [...cs].sort((a, b) => (/기록/.test(a.heading) ? 1 : 0) - (/기록/.test(b.heading) ? 1 : 0));
