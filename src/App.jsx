@@ -1,138 +1,126 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api, store } from './api.js';
-import { useReplay } from './useReplay.js';
-import { fmt, gradeRank } from './util.js';
-import SignalFeed from './components/SignalFeed.jsx';
-import IncidentBoard from './components/IncidentBoard.jsx';
-import DecisionPanel from './components/DecisionPanel.jsx';
-import DecisionLog from './components/DecisionLog.jsx';
-import HandoverModal from './components/HandoverModal.jsx';
-import VerifyBar from './components/VerifyBar.jsx';
-import SituationMap from './components/SituationMap.jsx';
-import LevelChart from './components/LevelChart.jsx';
-import Colleague from './components/Colleague.jsx';
+import { useCallback, useEffect, useState } from 'react';
+import { auth, store } from './api.js';
+import { useSession } from './useSession.js';
+import { usePractice } from './practice.js';
+import { chooseView, needList } from './util.js';
+import Login from './components/Login.jsx';
+import Welcome from './components/Welcome.jsx';
+import Header from './components/Header.jsx';
+import Queue from './components/Queue.jsx';
+import Arrival from './components/Arrival.jsx';
+import Standby from './components/Standby.jsx';
+import Focus from './components/Focus.jsx';
+import Drawer from './components/Drawer.jsx';
+import Overview from './components/Overview.jsx';
+import Night from './components/Night.jsx';
 import Scatter from './components/Scatter.jsx';
+import HandoverModal from './components/HandoverModal.jsx';
+import { Intro, CoachBar, Finale } from './components/Coach.jsx';
 
-const SPEEDS = [30, 60, 120];
+const RECORD_ID = 'cheongju-20260709';
 
 export default function App() {
-  const [list, setList] = useState([]);
-  const [scenarioId, setScenarioId] = useState(() => store.get('dm:scenario') || 'cheongju-20260709');
-  const r = useReplay(scenarioId);
-  const [selected, setSelected] = useState(null);
-  const [report, setReport] = useState(null);
-  const [code, setCode] = useState('');
-  const [without, setWithout] = useState(false);
+  const [authed, setAuthed] = useState(() => !!auth.get());
+  const [mode, setMode] = useState(() => store.json('dm:mode') ?? { kind: 'live' });
+  const [welcome, setWelcome] = useState(null); // null | 'first' | 'menu'
+  useEffect(() => { store.set('dm:mode', JSON.stringify(mode)); }, [mode]);
 
-  useEffect(() => { api.scenarios().then(setList).catch(() => {}); }, []);
-  useEffect(() => { store.set('dm:scenario', scenarioId); setSelected(null); setReport(null); }, [scenarioId]);
-
-  const incidents = r.session?.incidents ?? [];
-  // 선택이 없으면 결정이 가장 급한 사건을 보여 준다
-  const focus = useMemo(() => {
-    if (r.alertInc) return r.alertInc;
-    if (selected && incidents.some((i) => i.id === selected)) return selected;
-    return [...incidents].sort((a, b) => gradeRank(b.grade) - gradeRank(a.grade))[0]?.id ?? null;
-  }, [r.alertInc, selected, incidents]);
-  const focusInc = incidents.find((i) => i.id === focus) ?? null;
-
-  const pick = useCallback((id) => { setSelected(id); r.setAlertInc(null); }, [r.setAlertInc]); // eslint-disable-line react-hooks/exhaustive-deps
-  const makeReport = async () => {
-    r.setPlaying(false);
-    const out = await r.handover();
-    if (out) setReport(out);
-  };
-
-  if (!r.scenario) {
-    return <div className="boot">{r.error ? `시나리오를 불러오지 못했습니다: ${r.error}` : '시나리오를 불러오는 중입니다'}</div>;
+  const logout = () => { auth.clear(); setAuthed(false); setMode({ kind: 'live' }); };
+  if (!authed && mode.kind !== 'record') {
+    return <Login onIn={(o) => {
+      if (o?.record) { setMode({ kind: 'record', id: RECORD_ID }); return; }
+      setAuthed(true); setMode({ kind: 'live' });
+      if (!store.get('dm:welcomed')) setWelcome('first');
+    }} />;
   }
-  const scn = r.scenario;
+  const practice = (id) => { store.set('dm:welcomed', '1'); setWelcome(null); setMode({ kind: 'practice', id }); };
+  return (
+    <>
+      <Workspace key={`${mode.kind}:${mode.id ?? ''}`} mode={mode} authed={authed}
+        goLive={() => (authed ? setMode({ kind: 'live' }) : setMode({ kind: 'live' }))}
+        goRecord={() => setMode({ kind: 'record', id: RECORD_ID })}
+        openPractice={() => setWelcome('menu')} onLogout={logout} />
+      {welcome && authed && <Welcome first={welcome === 'first'} onPractice={practice} onClose={() => { store.set('dm:welcomed', '1'); setWelcome(null); }} />}
+    </>
+  );
+}
+
+function Workspace({ mode, authed, goLive, goRecord, openPractice, onLogout }) {
+  const r = useSession(mode);
+  const [picked, setPicked] = useState(null);
+  const [pinned, setPinned] = useState(mode.kind === 'record' ? 'night' : 'auto');
+  const [flowFor, setFlowFor] = useState(null);
+  const [scatter, setScatter] = useState(false);
+  const [report, setReport] = useState(null);
+  const [drawerReq, setDrawerReq] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const onFocus = useCallback((id) => { setPicked(id); setPinned('auto'); }, []);
+  const onView = useCallback((v, id) => {
+    if (v === 'flow') { setFlowFor(id); return; }
+    setPicked(null);
+    if (v === 'auto') { setFlowFor(null); setPinned('auto'); } else setPinned(v);
+  }, []);
+  const p = usePractice(r, { onFocus, onView });
+  r.restartPractice = p.restart;
+
+  useEffect(() => { if (!toast) return undefined; const id = setTimeout(() => setToast(null), 3500); return () => clearTimeout(id); }, [toast]);
+
+  if (!r.scenario || !r.session) {
+    return <div className="boot">{r.error ? `불러오지 못했습니다: ${r.error}` : r.needCode ? <NeedCodeNote onLogout={onLogout} /> : '근무 화면을 준비하는 중입니다'}</div>;
+  }
+
+  const incs = r.session.incidents;
+  const needs = needList(incs);
+  const pickedInc = incs.find((i) => i.id === picked);
+  const coach = p.coach;
+  // 연습에서 신호가 흐르는 동안에는 평시 화면(방금 들어온 신호)을 보여 주고, 멈춘 순간에만 결정 화면을 연다
+  const flowing = p.enabled && ['intro', 'flowing'].includes(p.phase) && (!pinned || pinned === 'auto');
+  const view = chooseView({ pinned: coach?.expect === 'memo' || flowing ? 'standby' : pinned, needs, picked: !!pickedInc, ended: r.ended });
+  const focusInc = pickedInc ?? needs[0] ?? null;
+  const shownView = view === 'decide' && !focusInc ? 'standby' : view;
+  const pick = (id) => { setPicked(id); setPinned('auto'); };
+  const makeReport = async () => { r.setRunning(false); const out = await r.handover(); if (out) setReport(out); };
+  const stepIdx = p.script && coach ? p.script.steps.findIndex((s) => s.id === coach.id) : -1;
+  const stepNo = stepIdx >= 0 ? stepIdx + 1 : null;
 
   return (
     <div className="app">
-      <header className="top">
-        <div className="brand">
-          <span className="brand-name">당직메이트</span>
-          <span className="brand-sub">{scn.duty.office}, {scn.duty.officer_role}</span>
-        </div>
-        <div className="controls">
-          <select aria-label="시나리오" value={scenarioId} onChange={(e) => setScenarioId(e.target.value)}>
-            {(list.length ? list : [{ id: scn.id, title: scn.title }]).map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
-          </select>
-          <button className="btn primary" onClick={() => r.setPlaying(!r.playing)} disabled={!r.session || (r.done && !r.playing)}>
-            {r.playing ? '일시정지' : r.done ? '재생 끝' : '재생'}
-          </button>
-          <button className="btn ghost" onClick={r.skip} disabled={!r.session || r.done || !!r.busy} title="신호가 없는 시간을 건너뜁니다">다음 신호로</button>
-          <label className="speed">
-            <span>배속</span>
-            <select value={r.speed} onChange={(e) => r.setSpeed(Number(e.target.value))}>
-              {SPEEDS.map((s) => <option key={s} value={s}>{s}배</option>)}
-            </select>
-          </label>
-          <label className="check">
-            <input type="checkbox" checked={r.autoPause} onChange={(e) => r.setAutoPause(e.target.checked)} />
-            권고가 오르면 멈춤
-          </label>
-          <button className="btn ghost" onClick={() => { r.reset(); setSelected(null); setReport(null); }} disabled={!!r.busy}>처음부터</button>
-        </div>
-        <div className="clock-box">
-          <div className="clock" aria-live="polite">{fmt(r.clock)}</div>
-          <div className="clock-sub">시나리오 시각, {r.speed}배속</div>
-        </div>
-        <button className={`btn compare-btn ${without ? 'on' : ''}`} aria-pressed={without} onClick={() => setWithout((w) => !w)}>
-          {without ? '당직메이트로 보기' : '없을 때 보기'}
-        </button>
-        <button className="btn report-btn" onClick={makeReport} disabled={!r.session?.signals.length || !!r.busy}>인계 보고서 만들기</button>
-      </header>
-
-      <div className="mode-band" role="status">
-        <strong>재생 모드 · {scn.basis ? '기록 기반 합성 신호' : '합성 신호'}</strong>
-        <span className="band-text">{scn.disclaimer}</span>
-        <details>
-          <summary>자세히</summary>
-          <div className="band-more">
-            <p>{scn.disclaimer}</p>
-            {scn.sources?.length > 0 && <p>출처: {scn.sources.join(', ')}</p>}
-            <p>AI는 어떤 조치도 실행하지 않고, 이 화면에서는 실제 전화·문자 발송도 하지 않습니다.</p>
-          </div>
-        </details>
-        <span className="no-send">실제 발송 없음</span>
-      </div>
-
-      <div className="status-row">
-        <div className={`ai-status ${r.busy ? 'on' : ''}`} aria-live="polite">
-          {r.busy ? <>{r.busy} · 그동안 시계를 멈춥니다</> : r.error ? <span className="err">{r.error}. 재생을 누르면 같은 신호를 다시 처리합니다. <button className="link" onClick={() => r.setError(null)}>닫기</button></span> : r.playing ? '재생 중' : r.done ? '모든 신호를 받았습니다. 남은 결정을 마치고 인계 보고서를 만드세요.' : r.alertInc ? `사건 #${incidents.find((i) => i.id === r.alertInc)?.no}의 권고 등급이 올라 멈췄습니다. 근거를 보고 결정하거나 재생을 눌러 이어 가세요.` : r.session?.signals.length ? '멈춤' : '멈춤 · 「재생」을 누르면 시작합니다'}
-        </div>
-        <VerifyBar session={r.session} />
-      </div>
-
-      {r.needCode && (
-        <form className="code-gate" onSubmit={(e) => { e.preventDefault(); r.saveCode(code); if (!r.session) r.reset(); }}>
-          <label>시연 코드를 입력하면 AI가 동작합니다 <input value={code} onChange={(e) => setCode(e.target.value)} autoFocus /></label>
-          <button className="btn primary" disabled={!code.trim()}>입력</button>
-        </form>
-      )}
-
-      {without ? <Scatter scenario={scn} session={r.session} pending={r.pending} /> : (
-        <main className="grid">
-          <SignalFeed session={r.session} scenario={scn} onMemo={r.memo} busy={!!r.busy} onPick={pick} pending={r.pending} />
-          <div className="center">
-            <section className="situation" aria-label="상황판">
-              <SituationMap scenario={scn} session={r.session} pending={r.pending} focus={focus} onPick={pick} />
-              <LevelChart scenario={scn} session={r.session} clock={r.clock} focusInc={focusInc} />
-            </section>
-            <IncidentBoard scenario={scn} session={r.session} focus={focus} onPick={pick} alertInc={r.alertInc} speed={r.speed} />
-          </div>
-          <div className="right">
-            <Colleague scenario={scn} session={r.session} pending={r.pending} onPick={pick} />
-            <DecisionPanel key={focusInc?.id ?? 'none'}
-              scenario={scn} incident={focusInc} busy={!!r.busy} onDecide={(pl) => { setSelected(pl.incident_id); return r.decide(pl); }} onRedraft={r.redraft} />
+      <Header r={r} view={shownView} pinned={pinned} setPinned={(v) => { setPinned(v); setPicked(null); }}
+        onReport={makeReport} onPractice={openPractice} onLive={goLive} onLogout={onLogout} authed={authed} />
+      {r.needCode && <div className="banner">체험 기간이 끝났습니다. 기관 접속 코드로 다시 로그인해 주세요. <button className="link" onClick={onLogout}>로그인</button></div>}
+      {r.capped && <div className="banner">오늘 AI 체험 한도를 다 썼습니다. 저장된 연습 기록으로 끝까지 보실 수 있습니다. <button className="link" onClick={goRecord}>저장된 연습 기록 보기</button></div>}
+      {r.error && <div className="banner err">{r.error}. <button className="link" onClick={() => { r.setError(null); if (r.kind === 'practice' && p.phase === 'flowing') r.setRunning(true); }}>다시 시도</button></div>}
+      <div className={`ws v-${shownView}`}>
+        <Queue session={r.session} focus={shownView === 'decide' ? focusInc?.id : null} onPick={pick} onSignals={() => { setPinned('auto'); setDrawerReq({ tab: 'all', at: Date.now() }); }} />
+        <main className="main">
+          <CoachBar coach={coach} step={stepNo} total={p.script?.steps.length ?? 0} />
+          <div className="main-in">
+          <Arrival pending={r.pending} arrival={r.arrival} clear={() => r.setArrival(null)} />
+          {toast && <p className="toast" role="status">{toast}</p>}
+          {shownView === 'standby' && <Standby r={r} onPractice={openPractice} suggest={coach?.memo} />}
+          {shownView === 'decide' && focusInc && (
+            <Focus r={r} inc={focusInc} coach={coach} flowOpen={flowFor === focusInc.id}
+              onDecided={(msg) => { setToast(msg); setTimeout(() => setPicked((x) => (x === focusInc.id ? null : x)), 1200); }} />
+          )}
+          {shownView === 'overview' && <Overview r={r} focus={focusInc?.id} onPick={pick} />}
+          {shownView === 'night' && <Night r={r} onPick={pick} onReport={makeReport} onScatter={() => setScatter(true)} />}
           </div>
         </main>
-      )}
+        {(shownView === 'standby' || shownView === 'decide') && (
+          <Drawer r={r} live={shownView === 'standby' && r.kind === 'live'} inc={shownView === 'decide' ? focusInc : null}
+            focus={focusInc?.id} onPick={pick} request={drawerReq} />
+        )}
+      </div>
 
-      <DecisionLog session={r.session} scenario={scn} onPick={pick} />
-      {report && <HandoverModal report={report} scenario={scn} onClose={() => setReport(null)} />}
+      {p.enabled && p.phase === 'intro' && <Intro script={p.script} onBegin={p.begin} onSkip={goLive} />}
+      {p.enabled && p.phase === 'finale' && !scatter && !report && <Finale session={r.session} onScatter={() => setScatter(true)} onLive={goLive} onAgain={p.restart} />}
+      {scatter && <Scatter session={r.session} onClose={() => setScatter(false)} />}
+      {report && <HandoverModal report={report} scenario={r.scenario} onClose={() => setReport(null)} />}
     </div>
   );
+}
+
+function NeedCodeNote({ onLogout }) {
+  return <span>기관 접속 코드가 필요합니다. <button className="link" onClick={onLogout}>로그인 화면으로</button></span>;
 }
