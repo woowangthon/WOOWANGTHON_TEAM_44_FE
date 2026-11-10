@@ -1,7 +1,7 @@
 // 왼쪽 사건 줄: 결정할 사건, 지켜보는 사건, 처리한 사건으로 나눈다.
 import { GRADE_KO, ACTION_KO, incState, needList, reraised } from '../util.js';
 
-const G = { control_review: 'ctl', report: 'rep', observe: 'obs' };
+const G = { control_review: 'ctl', report: 'rep', relay: 'rel', observe: 'obs' };
 
 function Row({ inc, on, onPick }) {
   const st = incState(inc);

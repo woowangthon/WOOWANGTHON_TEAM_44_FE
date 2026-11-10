@@ -1,5 +1,5 @@
-export const GRADE_KO = { observe: '관찰', report: '보고 권고', control_review: '통제 검토 요청 권고' };
-export const ACTION_KO = { report: '보고', control_review: '통제 검토 요청', hold: '보류' };
+export const GRADE_KO = { observe: '관찰', relay: '담당 부서 전달 권고', report: '보고 권고', control_review: '통제 검토 요청 권고' };
+export const ACTION_KO = { relay: '담당 부서 전달', report: '보고', control_review: '통제 검토 요청', hold: '보류' };
 export const CHANNEL_KO = {
   phone_memo: '전화', disaster_sms: '재난문자', agency_notice: '기관 통보',
   police_112: '112 공조', fire_119: '119 공동대응', system_alert: '시스템 알림',
@@ -10,9 +10,9 @@ export const fmt = (min) => {
   const m = Math.floor(min);
   return `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 };
-export const gradeRank = (g) => ['observe', 'report', 'control_review'].indexOf(g);
+export const gradeRank = (g) => ['observe', 'relay', 'report', 'control_review'].indexOf(g);
 // 위험도 색: 지도 점, 사건 줄, 권고 글자에 같은 색을 쓴다. 사건마다 다른 색은 쓰지 않는다.
-export const SEV = { control_review: '#b42318', report: '#b8620b', observe: '#7a8590' };
+export const SEV = { control_review: '#b42318', report: '#b8620b', relay: '#2f5f8a', observe: '#7a8590' };
 export const sevColor = (g) => SEV[g] ?? SEV.observe;
 // 「기록」 조항은 어느 사건에나 해당하므로 맨 뒤로 보낸다
 // 당직자가 할 일을 적은 조항(「당직자는 …한다」)을 앞에, 어느 사건에나 해당하는 「기록」 조항은 맨 뒤로
@@ -49,9 +49,17 @@ export function needList(incidents = []) {
     (reraised(b) - reraised(a)) || (gradeRank(b.grade) - gradeRank(a.grade)) || String(a.advice_at ?? a.opened_at).localeCompare(String(b.advice_at ?? b.opened_at)));
 }
 
-/** 근거 서랍에서 먼저 열 탭: 수위가 근거면 수위, 지하차도·하부도로나 도로 침수면 지도, 그 밖에는 신호 */
+// 하천·침수 계열 사건만 수위 그래프와 관련이 있다
+export const WATER = new Set(['river_flood', 'levee', 'road_water', 'urban_flooding', 'underpass', 'facility_flooding']);
+export const levelMatters = (inc, scenario) => {
+  const fac = scenario.facilities.find((f) => f.id === inc?.facility_id);
+  return !!(fac?.gauge || WATER.has(inc?.hazard));
+};
+
+/** 근거 서랍에서 먼저 열 탭: 수위가 근거면 수위, 지하차도·하부도로나 도로 침수면 지도, 생활 민원은 지도, 그 밖에는 신호 */
 export function pickTab(inc, scenario) {
-  if (!inc) return 'level';
+  if (!inc) return 'map';
+  if (!levelMatters(inc, scenario)) return (scenario.places ?? []).some((p) => inc.keys?.includes(p.id) && p.coord) ? 'map' : 'signals';
   const fac = scenario.facilities.find((f) => f.id === inc.facility_id);
   const hasSeries = fac?.gauge && scenario.timeseries?.[fac.gauge]?.length;
   if (hasSeries && inc.grade_why.some((w) => /수위|특보/.test(w))) return 'level';

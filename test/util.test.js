@@ -14,7 +14,8 @@ test('시각 변환', () => {
 test('권고 등급 순서와 결정의 비교', () => {
   assert.ok(gradeRank('control_review') > gradeRank('report'));
   assert.ok(gradeRank('report') > gradeRank('observe'));
-  assert.equal(gradeRank('report'), gradeRank(Object.keys(ACTION_KO)[0]));
+  assert.ok(gradeRank('report') > gradeRank('relay') && gradeRank('relay') > gradeRank('observe'));
+  assert.equal(gradeRank('relay'), gradeRank(Object.keys(ACTION_KO)[0]));
   assert.equal(GRADE_KO.control_review, '통제 검토 요청 권고');
 });
 
@@ -49,6 +50,9 @@ test('근거 서랍의 첫 탭: 수위 근거면 수위, 하부도로면 지도'
   assert.equal(pickTab(inc({ facility_id: 'F1', grade_why: ['기준 도달: 흥덕교 홍수특보 또는 주의 수위 도달'] }), scn), 'level');
   assert.equal(pickTab(inc({ facility_id: 'F3', hazard: 'road_water' }), scn), 'map');
   assert.equal(pickTab(inc({ hazard: 'landslide' }), scn), 'signals');
+  // 생활 민원은 수위와 무관하므로 지도(장소를 아는 경우)
+  const scn2 = { ...scn, places: [{ id: 'P26', coord: [36.6, 127.5] }] };
+  assert.equal(pickTab(inc({ hazard: 'water_main', keys: ['P26'], grade_why: ['생활 불편 신고: 상수도'] }), scn2), 'map');
 });
 
 test('조항 순서: 당직자가 할 일을 적은 조항 먼저, 「기록」 조항은 맨 뒤', () => {

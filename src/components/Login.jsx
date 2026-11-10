@@ -27,11 +27,11 @@ export default function Login({ onIn }) {
     <div className="login">
       <div className="login-side">
         <span className="wm">당직메이트</span>
-        <p className="login-lead">야간 당직실로 흩어져 들어오는 재난 신호를 사건으로 묶고, 통제 기준과 매뉴얼 조항을 찾아 당직자의 결정을 돕습니다.</p>
+        <p className="login-lead">야간 당직실로 흩어져 들어오는 전화와 신호를 사건으로 묶고, 처리할 부서와 매뉴얼 조항을 찾아 당직자의 결정을 돕습니다.</p>
         <ul className="login-roles">
-          <li><b>AI</b><span>전화, 기관 통보, 재난문자, 112·119 공조, 수위 알림을 사건으로 묶고, 매뉴얼 조항을 원문 그대로 찾고, 연락 초안을 써 둡니다.</span></li>
-          <li><b>규칙표</b><span>통제 기준에 닿았는지와 권고 등급은 코드로 정합니다.</span></li>
-          <li><b>당직자</b><span>보고, 통제 검토 요청, 보류를 고르고 실제 연락을 합니다. 당직메이트는 그 결정을 인계 보고서로 남깁니다.</span></li>
+          <li><b>AI</b><span>전화, 기관 통보, 재난문자, 112·119 공조, 수위 알림을 사건으로 묶고, 매뉴얼 조항을 원문 그대로 찾고, 연락할 때 볼 전달 사항을 정리합니다.</span></li>
+          <li><b>규칙표</b><span>통제 기준에 닿았는지, 어느 부서에 넘길 일인지와 권고 등급은 코드로 정합니다.</span></li>
+          <li><b>당직자</b><span>담당 부서 전달, 보고, 통제 검토 요청, 보류를 고르고 실제 연락을 합니다. 당직메이트는 그 결정을 인계 보고서로 남겨 다음 근무자에게 넘깁니다.</span></li>
         </ul>
       </div>
       <form className="login-card" onSubmit={submit}>

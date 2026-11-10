@@ -1,7 +1,7 @@
 // 이 사건의 흐름: 신호, 권고, 재촉, 결정을 시각 순으로 한 줄씩. 보류한 뒤 무엇이 바뀌었는지가 보이게 한다.
 import { ACTION_KO, GRADE_KO, CHANNEL_KO } from '../util.js';
 
-const basis = (s) => (s.live ? '직접 입력' : s.record?.basis === 'added' ? '가상 추가' : /실측/.test(s.record?.source ?? '') ? '실측' : null);
+const basis = (s) => (s.live ? '직접 입력' : s.record?.basis === 'added' ? '가상 추가' : s.record?.basis === 'composed' ? '가상 신호' : /실측/.test(s.record?.source ?? '') ? '실측' : null);
 
 export function flowItems(session, inc) {
   const items = [];

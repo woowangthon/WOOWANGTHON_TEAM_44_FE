@@ -1,17 +1,18 @@
 // 오른쪽 근거 서랍. 사건이 바뀌면 그 사건의 권고 근거에 맞는 탭을 먼저 연다(수위, 지도, 신호).
 import { useEffect, useState } from 'react';
-import { CHANNEL_KO, STATUS_KO, citeOrder, pickTab } from '../util.js';
+import { CHANNEL_KO, STATUS_KO, citeOrder, pickTab, levelMatters } from '../util.js';
 import LevelChart, { gaugesWithData } from './LevelChart.jsx';
 import SituationMap from './SituationMap.jsx';
 import LiveData from './LiveData.jsx';
+import Desk from './Desk.jsx';
 import Src from './Src.jsx';
 
-const basisLabel = (s) => (s.live ? '직접 입력' : s.record?.basis === 'added' ? '가상 추가' : /실측/.test(s.record?.source ?? '') ? '실측' : s.record?.basis === 'record' ? '보도 기반' : s.record ? '공식 기록 기반' : null);
+const basisLabel = (s) => (s.live ? '직접 입력' : s.record?.basis === 'added' ? '가상 추가' : s.record?.basis === 'composed' ? '가상 신호' : /실측/.test(s.record?.source ?? '') ? '실측' : s.record?.basis === 'record' ? '보도 기반' : s.record ? '공식 기록 기반' : null);
 
 export function SignalItem({ s, incNo }) {
   return (
     <li className="sig">
-      <div className="sig-meta"><time>{s.t}</time><span>{CHANNEL_KO[s.channel]}</span><span className="from">{s.from}</span>{basisLabel(s) && <span className={`basis ${s.record?.basis === 'added' || s.live ? 'added' : ''}`} title={s.record?.source ?? ''}>{basisLabel(s)}</span>}</div>
+      <div className="sig-meta"><time>{s.t}</time><span>{CHANNEL_KO[s.channel]}</span><span className="from">{s.from}</span>{basisLabel(s) && <span className={`basis ${['added', 'composed'].includes(s.record?.basis) || s.live ? 'added' : ''}`} title={s.record?.source ?? ''}>{basisLabel(s)}</span>}</div>
       <p className="body">{s.body}</p>
       {s.time_note && <p className="note">시각 출처 차이: {s.time_note}</p>}
       <p className="sig-ai">{s.norm?.by === 'rule' ? <Src k="rule">자동 요약</Src> : <Src k="ai">AI 요약</Src>} {s.norm?.one_line}{incNo ? <span className="to"> → #{incNo}</span> : null}</p>
@@ -51,11 +52,12 @@ function Clauses({ inc, scenario }) {
 
 export default function Drawer({ r, inc, focus, onPick, request, live }) {
   const scn = r.scenario;
-  const hasLevel = gaugesWithData(scn).length > 0;
+  // 수위 그래프는 자료가 있고, 결정 중인 사건이 하천·침수 계열일 때만 탭으로 둔다
+  const hasLevel = gaugesWithData(scn).length > 0 && (!inc || levelMatters(inc, scn));
   const tabs = live
-    ? [['live', '충북 실시간'], ['all', '오늘 들어온 신호']]
-    : [...(hasLevel ? [['level', '수위']] : []), ['map', '지도'], ...(inc ? [['signals', `신호 ${inc.signal_ids.length}`], ['clauses', '기준과 조항']] : []), ['all', '전체 신호'], ...(r.kind === 'live' ? [['live', '충북 실시간']] : [])];
-  const auto = live ? 'live' : inc ? pickTab(inc, scn) : hasLevel ? 'level' : 'map';
+    ? [['desk', '근무 도우미'], ['all', '오늘 들어온 신호']]
+    : [...(hasLevel ? [['level', '수위']] : []), ['map', '지도'], ...(inc ? [['signals', `신호 ${inc.signal_ids.length}`], ['clauses', '기준과 조항']] : []), ['all', '전체 신호'], ...(r.kind === 'live' ? [['desk', '근무 도우미']] : [])];
+  const auto = live ? 'desk' : inc ? pickTab(inc, scn) : hasLevel ? 'level' : 'map';
   const [tab, setTab] = useState(auto);
   useEffect(() => { setTab(auto); }, [inc?.id, live]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (request) setTab(request.tab); }, [request]);
@@ -70,6 +72,7 @@ export default function Drawer({ r, inc, focus, onPick, request, live }) {
       </div>
       <div className="dbody">
         {cur === 'live' && <LiveData />}
+        {cur === 'desk' && <Desk scenario={scn} session={r.session} />}
         {cur === 'level' && <LevelChart scenario={scn} session={r.session} clock={r.clock} inc={inc} />}
         {cur === 'map' && <SituationMap scenario={scn} session={r.session} pending={r.pending} focus={focus} onPick={onPick} />}
         {cur === 'signals' && inc && <ol className="sigs">{inc.signal_ids.map((sid) => sigs.find((s) => s.id === sid)).filter(Boolean).map((s) => <SignalItem key={s.id} s={s} />)}</ol>}

@@ -34,6 +34,28 @@ const SCRIPTS = {
         text: '결정할 사건이 여러 곳에서 쌓여 화면이 상황판으로 바뀌었습니다. 하나를 골라 결정해 보세요.' },
     ],
   },
+  'cheongju-winter': {
+    minutes: 5,
+    intro: {
+      title: '한파주의보가 내려진 겨울 새벽, 청주시청 당직실',
+      body: '상수도, 가로등, 신호등, 빙판길, 정전처럼 당직실에 흔히 들어오는 신고 14건이 시각대로 들어옵니다. 가상 신호이고, 연습할 순간이 오면 멈춥니다. 실제 전화나 문자는 보내지 않습니다.',
+    },
+    steps: [
+      { id: 'yongam', match: (i) => has('P26')(i) && need(i), expect: 'decide', suggest: 'relay',
+        text: '상수도관 누수 신고입니다. 처리할 부서와 조항을 보고 전달한 뒤 연락 결과를 남겨 보세요.' },
+      { id: 'gagyeong', match: (i) => has('P5')(i) && need(i), expect: 'decide', until: '02:30',
+        text: '신호등이 고장 나 경찰이 수신호 중입니다. 누구에게 전달할지 보고 결정해 보세요.' },
+      { id: 'yullyang', match: (i) => has('P31')(i) && need(i), expect: 'decide', until: '03:30',
+        text: '빌라 주차장 차량 화재로 주민 일부가 대피했습니다. 근거를 보고 결정해 보세요.' },
+      { id: 'memo', immediate: true, expect: 'memo',
+        text: '전화가 왔습니다. 받은 내용을 직접 적어 보세요.',
+        memo: { from: '내덕동 주민', body: '내덕동 버스정류장 앞 맨홀 뚜껑이 열려 있어 차가 지날 때마다 덜컹거린다고 함. 밤이라 잘 안 보여 위험하다고 함.' } },
+      { id: 'myeongam', match: (i) => has('P24')(i) && need(i), expect: 'decide', until: '04:30',
+        text: '고갯길이 빙판이라 차들이 멈춰 서 있습니다. 조항을 보고 결정해 보세요.' },
+      { id: 'bunpyeong', match: (i) => has('P29')(i) && need(i), expect: 'decide', until: '06:00',
+        text: '정전으로 엘리베이터가 멈췄는데 갇힌 사람이 있는지 모릅니다. 어디에 알릴지 정해 보세요.' },
+    ],
+  },
 };
 
 // 대본이 없는 시나리오(오송 등): 권고가 오를 때마다 멈춘다
@@ -130,7 +152,7 @@ export function usePractice(r, { onFocus, onView }) {
         ? { text: `${gi ? `${gi.title} 사건의 ` : ''}권고가 「${ACTION_KO[gi?.grade] ?? '보고'}」${ro(ACTION_KO[gi?.grade] ?? '보고')} 올랐습니다. 근거를 보고 결정해 보세요.`, expect: 'decide' }
         : script.steps.find((s) => s.id === prog.active.id);
       coach = { ...step, incId: prog.active.incId };
-    } else if (prog.phase === 'end') coach = { text: '새벽 근무가 끝났습니다. 밤 전체 흐름을 보고 인계 보고서를 만들어 보세요.', expect: 'handover' };
+    } else if (prog.phase === 'end') coach = { text: '새벽 근무가 끝났습니다. 밤 전체 흐름을 보고 인계 보고서를 만든 뒤 다음 근무자에게 넘겨 보세요.', expect: 'handover' };
   }
   return { enabled, script, phase: prog.phase, coach, begin, restart };
 }

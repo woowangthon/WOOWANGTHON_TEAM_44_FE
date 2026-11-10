@@ -15,6 +15,7 @@ import Overview from './components/Overview.jsx';
 import Night from './components/Night.jsx';
 import Scatter from './components/Scatter.jsx';
 import HandoverModal from './components/HandoverModal.jsx';
+import NextShift from './components/NextShift.jsx';
 import { Intro, CoachBar, Finale } from './components/Coach.jsx';
 
 const RECORD_ID = 'cheongju-20260709';
@@ -23,6 +24,7 @@ export default function App() {
   const [authed, setAuthed] = useState(() => !!auth.get());
   const [mode, setMode] = useState(() => store.json('dm:mode') ?? { kind: 'live' });
   const [welcome, setWelcome] = useState(null); // null | 'first' | 'menu'
+  const [ready, setReady] = useState(false); // 근무 화면이 다 뜬 뒤에 「처음이신가요?」를 띄운다
   useEffect(() => { store.set('dm:mode', JSON.stringify(mode)); }, [mode]);
 
   const logout = () => { auth.clear(); setAuthed(false); setMode({ kind: 'live' }); };
@@ -39,14 +41,16 @@ export default function App() {
       <Workspace key={`${mode.kind}:${mode.id ?? ''}`} mode={mode} authed={authed}
         goLive={() => (authed ? setMode({ kind: 'live' }) : setMode({ kind: 'live' }))}
         goRecord={() => setMode({ kind: 'record', id: RECORD_ID })}
-        openPractice={() => setWelcome('menu')} onLogout={logout} />
-      {welcome && authed && <Welcome first={welcome === 'first'} onPractice={practice} onClose={() => { store.set('dm:welcomed', '1'); setWelcome(null); }} />}
+        openPractice={() => setWelcome('menu')} onLogout={logout} onReady={setReady} />
+      {welcome && authed && ready && <Welcome first={welcome === 'first'} onPractice={practice} onClose={() => { store.set('dm:welcomed', '1'); setWelcome(null); }} />}
     </>
   );
 }
 
-function Workspace({ mode, authed, goLive, goRecord, openPractice, onLogout }) {
+function Workspace({ mode, authed, goLive, goRecord, openPractice, onLogout, onReady }) {
   const r = useSession(mode);
+  const loaded = !!(r.scenario && r.session);
+  useEffect(() => { onReady?.(loaded); }, [loaded]); // eslint-disable-line react-hooks/exhaustive-deps
   const [picked, setPicked] = useState(null);
   const [pinned, setPinned] = useState(mode.kind === 'record' ? 'night' : 'auto');
   const [flowFor, setFlowFor] = useState(null);
@@ -54,6 +58,7 @@ function Workspace({ mode, authed, goLive, goRecord, openPractice, onLogout }) {
   const [report, setReport] = useState(null);
   const [drawerReq, setDrawerReq] = useState(null);
   const [toast, setToast] = useState(null);
+  const [next, setNext] = useState(false);
 
   const onFocus = useCallback((id) => { setPicked(id); setPinned('auto'); }, []);
   const onView = useCallback((v, id) => {
@@ -114,9 +119,10 @@ function Workspace({ mode, authed, goLive, goRecord, openPractice, onLogout }) {
       </div>
 
       {p.enabled && p.phase === 'intro' && <Intro script={p.script} onBegin={p.begin} onSkip={goLive} />}
-      {p.enabled && p.phase === 'finale' && !scatter && !report && <Finale session={r.session} onScatter={() => setScatter(true)} onLive={goLive} onAgain={p.restart} />}
+      {p.enabled && p.phase === 'finale' && !scatter && !report && !next && <Finale session={r.session} onScatter={() => setScatter(true)} onLive={goLive} onAgain={p.restart} />}
       {scatter && <Scatter session={r.session} onClose={() => setScatter(false)} />}
-      {report && <HandoverModal report={report} scenario={r.scenario} onClose={() => setReport(null)} />}
+      {report && <HandoverModal report={report} scenario={r.scenario} r={r} onClose={() => setReport(null)} onNext={() => { setReport(null); setNext(true); }} />}
+      {next && <NextShift onLive={goLive} onClose={() => setNext(false)} />}
     </div>
   );
 }

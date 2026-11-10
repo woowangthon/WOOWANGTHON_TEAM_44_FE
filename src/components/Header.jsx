@@ -2,6 +2,7 @@ import { fmt } from '../util.js';
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 function dateLabel(iso) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso ?? '')) return iso ?? '';
   const d = new Date(`${iso}T12:00:00+09:00`);
   return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 ${DAYS[d.getUTCDay()]}요일`;
 }
@@ -17,7 +18,7 @@ export default function Header({ r, view, pinned, setPinned, onReport, onPractic
       <span className="office">{r.kind === 'live' ? '청주시청 당직실, 야간 당직' : scn.duty.office}</span>
       {r.kind === 'practice' && (
         <details className="tag">
-          <summary>연습, {scn.clock.date.replace(/-/g, '.')} {short} 기록 재구성, 실제 발송 없음</summary>
+          <summary>{scn.basis === 'composed' ? '연습, 흔한 신고 유형으로 만든 가상 신호, 실제 발송 없음' : `연습, ${scn.clock.date.replace(/-/g, '.')} ${short} 기록 재구성, 실제 발송 없음`}</summary>
           <div className="pop">
             <p>{scn.disclaimer}</p>
             {scn.sources?.length > 0 && <p className="sub">출처: {scn.sources.join(', ')}</p>}

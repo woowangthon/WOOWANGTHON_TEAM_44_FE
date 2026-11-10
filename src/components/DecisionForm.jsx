@@ -5,6 +5,12 @@ import { GRADE_KO, gradeRank } from '../util.js';
 import Src from './Src.jsx';
 
 const STATUS = [['reached', '전달함'], ['pending', '회신 대기']];
+const HINT = {
+  relay: '예: 상수도관 누수 신고를 받아 상수도사업본부 야간 비상연락에 전달함',
+  report: '예: 차량 화재로 주민이 대피 중이라 당직사령에게 보고함',
+  control_review: '예: 수위가 기준에 닿고 침수 신고가 있어 관리 부서에 통제 검토를 요청함',
+  hold: '예: 현장 확인 결과를 기다린 뒤 판단하기로 함',
+};
 
 export function briefOf(draft) {
   if (!draft) return null;
@@ -45,7 +51,7 @@ export default function DecisionForm({ scenario, inc, action, busy, onDecide, on
     <form className="dform" onSubmit={submit}>
       <label className="field">
         <span>사유</span>
-        <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="예: 홍수주의보 통보를 받아 보고함" autoFocus />
+        <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={HINT[action] ?? HINT.report} autoFocus />
       </label>
       {quick.length > 0 && (
         <div className="quick">{quick.map((q) => <button type="button" key={q} className="chip" onClick={() => setReason((r) => (r ? `${r} ${q}.` : `${q}.`))}>{q}</button>)}</div>

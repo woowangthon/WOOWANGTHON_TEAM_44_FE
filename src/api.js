@@ -37,4 +37,14 @@ export const api = {
   scenario: (id) => req(`/api/scenarios?id=${encodeURIComponent(id)}`),
   session: (body) => req('/api/session', body),
   live: () => req('/api/live'),
+  inbox: (q) => req(`/api/handoff?${new URLSearchParams(q)}`),
+  markHandoff: (body) => req('/api/handoff', body),
 };
+
+// 연습 인계함은 브라우저마다 따로 둔다(심사위원끼리 섞이지 않게)
+export function clientId() {
+  let id = store.get('dm:client');
+  if (!id || !/^[a-z0-9]{8,40}$/.test(id)) { id = Array.from(crypto.getRandomValues(new Uint8Array(10)), (b) => (b % 36).toString(36)).join(''); store.set('dm:client', id); }
+  return id;
+}
+export const inboxQuery = (practice) => (practice ? { practice: '1', client: clientId() } : { office: '청주시청 당직실' });

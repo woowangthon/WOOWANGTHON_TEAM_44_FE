@@ -7,10 +7,11 @@ import Src from './Src.jsx';
 
 const ACTIONS = [
   { id: 'control_review', label: '통제 검토 요청', help: '시설 관리주체에 통제를 검토해 달라고 요청' },
-  { id: 'report', label: '보고', help: '당직사령·담당 부서에 알림' },
-  { id: 'hold', label: '보류', help: '지금은 보고·요청하지 않고 사유를 남김' },
+  { id: 'report', label: '보고', help: '당직사령에게 알리고 지시를 받음' },
+  { id: 'relay', label: '담당 부서 전달', help: '처리할 부서나 기관에 넘김' },
+  { id: 'hold', label: '보류', help: '지금은 연락하지 않고 사유를 남김' },
 ];
-const G = { control_review: 'ctl', report: 'rep', observe: 'obs' };
+const G = { control_review: 'ctl', report: 'rep', relay: 'rel', observe: 'obs' };
 
 function reasons(inc) {
   const out = inc.criteria.filter((c) => ['met', 'approaching'].includes(c.status))

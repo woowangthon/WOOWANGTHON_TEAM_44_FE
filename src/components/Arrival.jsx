@@ -18,7 +18,7 @@ export default function Arrival({ pending, arrival, clear }) {
   else result = <span><Src k={arrival.by === 'llm' ? 'ai' : 'rule'} /> <b>#{arrival.inc.no} {arrival.inc.title}</b>에 묶었습니다{arrival.by === 'llm' && arrival.reason ? `. ${arrival.reason}` : ''}</span>;
   return (
     <div className={`arrival ${pending ? 'is-reading' : ''}`} role="status" aria-live="polite" key={pending ? 'p' : arrival.key}>
-      <div className="arr-meta"><time>{s.t}</time><span>{CHANNEL_KO[s.channel] ?? s.channel}</span><span className="from">{s.from}</span>{s.record?.basis === 'added' && <span className="basis">가상 추가</span>}</div>
+      <div className="arr-meta"><time>{s.t}</time><span>{CHANNEL_KO[s.channel] ?? s.channel}</span><span className="from">{s.from}</span>{s.record?.basis === 'added' && <span className="basis">가상 추가</span>}{s.record?.basis === 'composed' && <span className="basis">가상 신호</span>}</div>
       <p className="arr-body">{s.body}</p>
       <p className="arr-result">{result}</p>
     </div>

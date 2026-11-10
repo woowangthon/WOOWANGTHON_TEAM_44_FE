@@ -3,7 +3,7 @@
 //  practice 연습: 지난 기록으로 재구성한 신호를 시각대로 흘리고, 연습할 순간에 멈춘다(배속 조작 없음)
 //  record   저장된 연습 기록: 실제 재생을 끝까지 마친 세션을 AI 호출 없이 읽기 전용으로 연다
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, store, NeedCode, CapReached } from './api.js';
+import { api, store, NeedCode, CapReached, clientId, inboxQuery } from './api.js';
 import { toMin, fmt } from './util.js';
 
 const TICK_MS = 250;
@@ -41,6 +41,10 @@ export function useSession(mode) {
   const clockRef = useRef(clock);
   const sessionRef = useRef(null);
   const stepHook = useRef(null); // 연습 진행기가 신호 처리 뒤 멈출지 정한다
+  // 당직실 인계함: 실제 근무는 기관 인계함, 연습은 이 브라우저의 연습 인계함
+  const [inbox, setInbox] = useState(null);
+  const loadInbox = useCallback(() => api.inbox(inboxQuery(kind !== 'live')).then((x) => { setInbox(x); return x; }).catch(() => null), [kind]);
+  useEffect(() => { if (kind === 'live') loadInbox(); }, [kind, loadInbox]);
   useEffect(() => { clockRef.current = clock; }, [clock]);
   useEffect(() => { sessionRef.current = session; }, [session]);
 
@@ -163,13 +167,36 @@ export function useSession(mode) {
     const r = await api.session({ op: 'redraft', scenario_id: scenario.id, state: withNow(sessionRef.current), incident_id });
     setSession(r.state);
   });
+  // 이 브라우저에서 넘긴 인계는 이 브라우저의 실제 근무 화면에 «넘겨받은 것»으로 다시 띄우지 않는다
+  const sentKey = 'dm:sent';
+  const sentIds = () => (store.json(sentKey) ?? []);
+  const received = () => {
+    const h = inbox?.latest;
+    if (kind !== 'live' || !h || sentIds().includes(h.id)) return null;
+    return { from: h.from, period: h.period, items: h.items.map((i) => ({ title: `#${i.incident_no} ${i.title}`, text: i.text, taken: h.taken.includes(i.key) })) };
+  };
+  const take = async (id, item) => {
+    const r = await api.markHandoff({ ...inboxQuery(kind !== 'live'), op: 'take', id, item }).catch((e) => { setError(e.message); return null; });
+    if (r) setInbox((x) => ({ ...x, latest: r.handoff }));
+    return r;
+  };
+  const receive = async (id) => {
+    const r = await api.markHandoff({ ...inboxQuery(kind !== 'live'), op: 'receive', id }).catch((e) => { setError(e.message); return null; });
+    if (r) setInbox((x) => ({ ...x, latest: r.handoff }));
+    return r;
+  };
+  const handoff = (payload) => run('인계함에 넘기는 중', async () => {
+    const r = await api.session({ op: 'handoff', scenario_id: scenario.id, state: withNow(sessionRef.current), client: clientId(), ...payload });
+    if (kind === 'live') store.set(sentKey, JSON.stringify([...sentIds(), r.handoff.id].slice(-20)));
+    return r;
+  });
   const handover = () => (kind === 'record'
     ? run('인계 보고서 준비', async () => {
       const r = await api.session({ op: 'handover', scenario_id: scenario.id, state: sessionRef.current });
       return r;
     })
     : run('AI가 인계 보고서를 쓰는 중', async () => {
-      const r = await api.session({ op: 'handover', scenario_id: scenario.id, state: withNow(sessionRef.current) });
+      const r = await api.session({ op: 'handover', scenario_id: scenario.id, state: withNow(sessionRef.current), received: received() ?? undefined });
       setSession(r.state);
       stepHook.current?.(sessionRef.current, r.state, 'handover');
       return r;
@@ -179,6 +206,7 @@ export function useSession(mode) {
   return {
     kind, scenario, session, clock, running, setRunning, busy, error, setError, needCode, capped, pending, arrival, setArrival, meta,
     memo, decide, contact, redraft, handover, reset, stepHook,
+    inbox, loadInbox, take, receive, handoff, inboxHidden: !!(inbox?.latest && sentIds().includes(inbox.latest.id)),
     ended: kind !== 'live' && !!(scenario && session && session.cursor >= scenario.signals.length && clock >= toMin(scenario.clock.end) - 0.01),
     readOnly: kind === 'record',
   };

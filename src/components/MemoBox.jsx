@@ -13,7 +13,7 @@ export default function MemoBox({ onMemo, busy, suggest, compact, readOnly }) {
   return (
     <form className={`memo ${compact ? 'compact' : ''}`} onSubmit={submit}>
       <h3>받은 전화 적기</h3>
-      <textarea rows={compact ? 2 : 3} value={body} onChange={(e) => setBody(e.target.value)} placeholder="예: 가경동 아파트 단지 안 도로에 물이 차서 차가 잠겼다는 전화" />
+      <textarea rows={compact ? 2 : 3} value={body} onChange={(e) => setBody(e.target.value)} placeholder="예: 용암동 아파트 앞 인도에서 상수도관이 터져 물이 차도로 흐른다는 전화" />
       <div className="row">
         <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="건 사람 (선택)" />
         <button className="btn dark" disabled={busy || !body.trim()}>사건으로 넣기</button>
