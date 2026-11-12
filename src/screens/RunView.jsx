@@ -80,7 +80,7 @@ export default function RunView({ id }) {
           <div className="work-main">
             {/* 최종본(마지막 두 단계)부터 읽고, 이상한 곳이 있을 때만 앞 단계를 펼쳐 거슬러 올라간다. 팀장이 결과를 검토하는 순서와 같다 */}
             {(() => {
-              const block = (s) => <StageBlock key={s.key} stage={s} marks={marks} onPick={playable && !done ? setEditing : undefined} notes={notes} />;
+              const block = (s) => <StageBlock key={s.key} stage={s} marks={marks} onPick={playable && !done ? (uid, quote) => setEditing({ uid, quote }) : undefined} notes={notes} />;
               const finals = stages.slice(-2).reverse();
               const earlier = stages.slice(0, -2).reverse();
               return (<>
@@ -103,9 +103,9 @@ export default function RunView({ id }) {
       </div>
 
       {editing && (
-        <MarkEditor uid={editing} text={unitText(editing)} mark={marks[editing]}
-          onSave={(m) => { setMarks({ ...marks, [editing]: m }); setEditing(null); }}
-          onRemove={() => { const n = { ...marks }; delete n[editing]; setMarks(n); setEditing(null); }}
+        <MarkEditor key={`${editing.uid}:${editing.quote}`} uid={editing.uid} quote={editing.quote} text={unitText(editing.uid)} mark={marks[editing.uid]}
+          onSave={(m) => { setMarks({ ...marks, [editing.uid]: m }); setEditing(null); window.getSelection()?.removeAllRanges(); }}
+          onRemove={() => { const n = { ...marks }; delete n[editing.uid]; setMarks(n); setEditing(null); }}
           onClose={() => setEditing(null)} />
       )}
 

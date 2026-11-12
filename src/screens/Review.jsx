@@ -4,6 +4,13 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { api, reviewCode, modelName } from '../api.js';
 import { SourcePanel, StageBlock, PATTERNS } from '../ui/work.jsx';
 
+const STATUS = { pending: '아직 안 봄', approved: '판정함', edited: '판정함(등급 바꿈)', deleted: '오류 아님으로 뺌', added: '사람이 추가' };
+const GRADES = [
+  { k: 'A', key: '1', label: 'A · 분명한 오류', desc: '원자료와 다르고, 읽는 사람의 결론·행동이 달라짐. 점수에 씀' },
+  { k: 'B', key: '2', label: 'B · 판단이 갈림', desc: '틀렸다고 볼 수도 있고 아닐 수도 있음. 점수에 안 씀' },
+  { k: 'C', key: '3', label: 'C · 사소함', desc: '표현이 어색하지만 결론은 같음. 점수에 안 씀' },
+];
+
 export default function Review({ runId }) {
   const [code, setCode] = useState(reviewCode.get());
   const [q, setQ] = useState(null);
@@ -59,6 +66,13 @@ function ReviewRun({ runId }) {
   // 순서: 두 감사 일치 → 한쪽만 → 사람 추가. 검수 화면은 등급 A부터
   const order = useMemo(() => [...items].sort((a, b) => (a.source === 'both' ? 0 : 1) - (b.source === 'both' ? 0 : 1) || (a.grade ?? 'Z').localeCompare(b.grade ?? 'Z')), [items]);
   const it = order[cur];
+  const next = () => setCur((c) => Math.min(c + 1, order.length - 1));
+  const myMarks = d?.makerMarks ?? [];
+  const myMarksOf = (x) => myMarks.filter((m) => [x.origin, ...(x.spread ?? [])].includes(m.uid));
+  const covered = new Set(items.filter((x) => !x.deleted).flatMap((x) => [x.origin, ...(x.spread ?? [])]));
+  const extraMine = myMarks.filter((m) => !covered.has(m.uid));
+  // 등급 고르기 = 그 등급으로 판정. 등급이 그대로면 승인, 바뀌면 고침으로 남는다
+  const decide = (x, g) => op(x.grade === g && !x.deleted ? { action: 'approve', item: x.id } : { action: 'edit', item: x.id, grade: g }).then(next);
   const op = async (o) => {
     if (busy) return;
     setBusy(true); setError('');
@@ -71,9 +85,9 @@ function ReviewRun({ runId }) {
       if (e.key === 'Tab') { e.preventDefault(); setMode((m) => (m === 'items' ? 'direct' : 'items')); return; }
       if (mode !== 'items' || !it) return;
       const k = e.key.toLowerCase();
-      if (k === 'y') op({ action: 'approve', item: it.id }).then(() => setCur((c) => Math.min(c + 1, order.length - 1)));
-      else if (k === 'd') op({ action: 'delete', item: it.id }).then(() => setCur((c) => Math.min(c + 1, order.length - 1)));
-      else if (['1', '2', '3'].includes(k)) op({ action: 'edit', item: it.id, grade: 'ABC'[Number(k) - 1] });
+      if (k === 'y') op({ action: 'approve', item: it.id }).then(next);
+      else if (k === 'd') op({ action: 'delete', item: it.id }).then(next);
+      else if (['1', '2', '3'].includes(k)) decide(it, 'ABC'[Number(k) - 1]);
       else if (k === 'o') op({ action: 'confirmOrigin', item: it.id, value: !it.originConfirmed });
       else if (k === 'j' || e.key === 'ArrowRight') setCur((c) => Math.min(c + 1, order.length - 1));
       else if (k === 'k' || e.key === 'ArrowLeft') setCur((c) => Math.max(c - 1, 0));
@@ -97,43 +111,82 @@ function ReviewRun({ runId }) {
         {' '}<button className="btn" onClick={() => setMode(mode === 'items' ? 'direct' : 'items')}>{mode === 'items' ? '직접 대조로(Tab)' : '항목 검수로(Tab)'}</button>
         {' '}<button className="btn btn-primary" onClick={finalize} disabled={done < items.filter((x) => x.grade).length}>확정(새 판)</button></p>
       {error && <p className="error">{error}</p>}
-      <p className="small muted">키: Y 승인 · D 삭제 · 1/2/3 등급 A/B/C · O 근원 확정 · J/K 다음/이전 · Tab 직접 대조. 메모 칸에 적은 말이 다음 동작의 이유로 남습니다.</p>
+      <p className="small muted">항목마다 「이건 오류인가요?」에 답하면 다음 항목으로 넘어갑니다. 키보드로도 됩니다: 1·2·3·D 답하기, O 처음 생긴 곳 맞음, J/K 다음/이전, Tab 직접 대조(장부가 놓친 오류 추가). 모두 답하면 「확정」을 누르세요.</p>
       <div className="review-grid">
         <aside className="work-src"><SourcePanel key={evid.join() || 'x'} docs={docs} highlight={evid} compact /></aside>
         <div>
-          {mode === 'items' && it && (
+          {mode === 'items' && it && (() => {
+            const units = run.stages.flatMap((st) => st.units);
+            const text = units.find((u) => u.uid === it.origin)?.text ?? '';
+            const w = it.wrongText && text.includes(it.wrongText) ? it.wrongText : '';
+            const parts = w ? text.split(w) : [text];
+            const mine = myMarksOf(it);
+            const split = Object.values(it.byAudit ?? {}).map((x) => x.grade).filter(Boolean);
+            return (
             <section className="sheet review-item">
-              <p className="li-head"><b>{it.id}</b> · {it.source === 'both' ? '두 감사 일치' : it.source === 'one' ? '한 감사만' : '사람 추가'} · <b>{it.grade}</b>{it.gradeSplit ? '(감사 간 등급 엇갈림)' : ''} · {it.pattern} · {({ pending: '검토 전', approved: '승인', edited: '고침', deleted: '삭제', added: '사람 추가' })[it.review] ?? it.review}{it.originConfirmed ? ' · 근원 확정' : ''} <span className="muted">({cur + 1}/{order.length})</span></p>
-              <p>근원 <b>{it.origin}</b>{it.spread?.length ? <> → 번짐 {it.spread.join(', ')}</> : null}</p>
-              {/* 무엇이 틀렸다는지 바로 보이게: AI 동료가 쓴 문장 전체(틀린 구절 표시)와 감사가 댄 원자료 근거 */}
-              {(() => {
-                const text = run.stages.flatMap((st) => st.units).find((u) => u.uid === it.origin)?.text ?? '';
-                const w = it.wrongText && text.includes(it.wrongText) ? it.wrongText : '';
-                const [a, ...b] = w ? text.split(w) : [text];
-                return (
-                  <blockquote className="rv-unit"><span className="small muted">AI 동료가 쓴 문장({it.origin})</span><br />
-                    {w ? <>{a}<mark className="rv-wrong">{w}</mark>{b.join(w)}</> : <>{text}{it.wrongText ? <><br /><span className="small">틀린 구절: 「{it.wrongText}」</span></> : null}</>}
-                  </blockquote>
-                );
-              })()}
-              {(it.evidence ?? []).filter((e) => e.quote).length > 0 && (
-                <ul className="rv-evid small">{it.evidence.filter((e) => e.quote).map((e, i) => <li key={i}><b>{e.ref}</b> 「{e.quote}」</li>)}</ul>
+              <p className="li-head"><b>{cur + 1} / {order.length}</b> · {STATUS[it.review] ?? it.review}{it.originConfirmed ? ' · 처음 생긴 곳 확인함' : ''}</p>
+
+              <h3 className="rv-q">AI 동료가 쓴 문장 <span className="small muted">{it.origin}</span></h3>
+              <blockquote className="rv-unit">
+                {w ? <>{parts[0]}<mark className="rv-wrong">{w}</mark>{parts.slice(1).join(w)}</> : <>{text}{it.wrongText ? <><br /><span className="small">문제 구절: 「{it.wrongText}」</span></> : null}</>}
+              </blockquote>
+
+              <h3 className="rv-q">감사가 본 문제</h3>
+              <p className="rv-why">{it.why}</p>
+              {(it.evidence ?? []).filter((e) => e.quote && /^[A-F]-p/.test(e.ref)).length > 0 && (
+                <ul className="rv-evid small">{it.evidence.filter((e) => e.quote && /^[A-F]-p/.test(e.ref)).map((e, i) => <li key={i}>원자료 <b>{e.ref}</b> 「{e.quote}」</li>)}</ul>
               )}
-              {it.gradeSplit && <p className="small muted">두 감사의 등급이 달라 높은 쪽({it.grade})을 임시로 따랐습니다. 아래 두 설명을 보고 1·2·3으로 정해 주세요.</p>}
-              {Object.entries(it.byAudit ?? {}).map(([c, b]) => (
-                <p key={c} className="small"><b>{c}({modelName(b.model)}) {b.grade}</b> 근원 {b.origin}: {b.why} <span className="muted">코드: 구절 {b.code?.wrongInUnit ? '○' : '×'} · 근거 {b.code?.evidence?.filter((e) => e.found).length ?? 0}/{b.code?.evidence?.length ?? 0}{b.code?.numNotInSource?.length ? ` · 원자료에 없는 숫자 ${b.code.numNotInSource.join(',')}` : ''}</span></p>
-              ))}
-              {!Object.keys(it.byAudit ?? {}).length && <p className="small">{it.why}</p>}
-              <p className="small muted">막는 지시: {it.prevent || '—'}</p>
-              <EditFields it={it} onSave={(f) => op({ action: 'edit', item: it.id, ...f })} />
-              <label className="small">메모(이유)<input value={note} onChange={(e) => setNote(e.target.value)} /></label>
-              <div className="row-btns">
-                <button className="btn btn-primary" onClick={() => op({ action: 'approve', item: it.id })}>승인 Y</button>
-                <button className="btn" onClick={() => op({ action: 'delete', item: it.id })}>삭제 D</button>
-                <button className="btn" onClick={() => op({ action: 'confirmOrigin', item: it.id, value: !it.originConfirmed })}>근원 {it.originConfirmed ? '확정 풀기' : '확정'} O</button>
-                <button className="btn" onClick={() => setCur(Math.max(cur - 1, 0))}>이전 K</button>
-                <button className="btn" onClick={() => setCur(Math.min(cur + 1, order.length - 1))}>다음 J</button>
+
+              {mine.length > 0 ? (
+                <div className="rv-mine small"><b>미영이 풀 때 이 오류가 걸친 칸에 그은 빨간 줄</b>
+                  <ul>{mine.map((m) => <li key={m.uid}><b>{m.uid}</b> {m.note || '(메모 없음)'}</li>)}</ul>
+                  <span className="muted">칸만 겹치고 이유가 다르면 아래에서 판단해 주세요.</span>
+                </div>
+              ) : <p className="rv-mine small muted">미영은 풀 때 이 오류가 걸친 칸에 빨간 줄을 긋지 않았습니다.</p>}
+
+              <h3 className="rv-q">이건 오류인가요?</h3>
+              <div className="rv-choices">
+                {GRADES.map((g) => (
+                  <button key={g.k} className={`btn rv-choice ${!it.deleted && it.review !== 'pending' && it.grade === g.k ? 'on' : ''}`} disabled={busy} onClick={() => decide(it, g.k)}>
+                    <b>{g.label}</b><span>{g.desc}</span><kbd>{g.key}</kbd>
+                  </button>
+                ))}
+                <button className={`btn rv-choice ${it.deleted ? 'on' : ''}`} disabled={busy} onClick={() => op({ action: 'delete', item: it.id }).then(next)}>
+                  <b>오류 아님</b><span>원자료와 맞거나 문제 삼을 일이 아님</span><kbd>D</kbd>
+                </button>
               </div>
+              {split.length > 1 && new Set(split).size > 1 && <p className="small muted">두 감사의 등급이 갈렸습니다({Object.entries(it.byAudit).map(([c, x]) => `${c} ${x.grade}`).join(', ')}). 위에서 미영이 정하면 됩니다.</p>}
+
+              {!it.deleted && (
+                <>
+                  <h3 className="rv-q">처음 생긴 곳이 {it.origin}가 맞나요? <span className="small muted">(맞히면 풀이에서 근원 점수에 씀, 모르면 넘어가도 됨)</span></h3>
+                  <div className="row-btns">
+                    <button className={`btn ${it.originConfirmed ? 'btn-primary' : ''}`} disabled={busy} onClick={() => op({ action: 'confirmOrigin', item: it.id, value: !it.originConfirmed })}>{it.originConfirmed ? '맞음(확인함) · 취소' : '맞음'} <kbd>O</kbd></button>
+                  </div>
+                </>
+              )}
+
+              <label className="small">메모(선택, 판단 이유)<textarea className="note-box" rows={2} value={note} onChange={(e) => setNote(e.target.value)} /></label>
+              <details className="small rv-more"><summary>자세히: 감사별 원문 · 코드 대조 · 번진 곳 · 패턴 고치기</summary>
+                <p>번진 곳(이 오류가 옮겨진 뒤 단계 칸): {it.spread?.length ? it.spread.join(', ') : '없음'}</p>
+                {Object.entries(it.byAudit ?? {}).map(([c, x]) => (
+                  <p key={c}><b>{c}({modelName(x.model)}) {x.grade}</b> 근원 {x.origin}: {x.why} <span className="muted">코드: 구절 {x.code?.wrongInUnit ? '○' : '×'} · 근거 {x.code?.evidence?.filter((e) => e.found).length ?? 0}/{x.code?.evidence?.length ?? 0}{x.code?.numNotInSource?.length ? ` · 원자료에 없는 숫자 ${x.code.numNotInSource.join(',')}` : ''}</span></p>
+                ))}
+                <p className="muted">막는 지시: {it.prevent || '—'}</p>
+                <EditFields it={it} onSave={(f) => op({ action: 'edit', item: it.id, ...f })} />
+              </details>
+              <div className="row-btns">
+                <button className="btn" onClick={() => setCur(Math.max(cur - 1, 0))}>이전 <kbd>K</kbd></button>
+                <button className="btn" onClick={next}>다음 <kbd>J</kbd></button>
+              </div>
+            </section>
+            );
+          })()}
+          {mode === 'items' && cur === order.length - 1 && extraMine.length > 0 && (
+            <section className="sheet review-item">
+              <h3 className="rv-q">미영이 풀 때 그었는데 장부에 없는 빨간 줄 {extraMine.length}개</h3>
+              <p className="small muted">장부 항목 어디에도 걸치지 않은 칸입니다. 오류가 맞으면 장부에 추가하세요(「직접 대조」 화면에서 그 칸을 눌러 추가).</p>
+              <ul className="small">{extraMine.map((m) => <li key={m.uid}><b>{m.uid}</b> {m.note || '(메모 없음)'}</li>)}</ul>
             </section>
           )}
           {mode === 'direct' && (

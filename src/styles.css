@@ -486,3 +486,21 @@ main, .sheet, .band { overflow-wrap: anywhere; }
 .rv-unit { margin: 6px 0 8px; padding: 8px 12px; border-left: 3px solid var(--red); background: var(--paper-2); line-height: 1.7; }
 .rv-wrong { background: rgba(200, 16, 46, 0.14); color: inherit; text-decoration: underline; text-decoration-color: var(--red); text-underline-offset: 3px; }
 .rv-evid { margin: 0 0 8px; padding-left: 1.2em; color: var(--ink-2); }
+
+/* 검수 카드 */
+.rv-q { font-size: 0.98rem; margin: 16px 0 6px; }
+.rv-why { margin: 0 0 6px; line-height: 1.7; }
+.rv-mine { background: #fff; border: 1px dashed var(--red); padding: 8px 12px; margin: 10px 0; }
+.rv-mine ul { margin: 4px 0; padding-left: 1.2em; }
+.rv-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.rv-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 10px 12px; height: auto; white-space: normal; position: relative; }
+.rv-choice span { font-size: 0.8rem; color: var(--ink-2); font-weight: 400; line-height: 1.4; }
+.rv-choice kbd, .row-btns kbd { font-size: 0.7rem; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; color: var(--ink-2); }
+.rv-choice kbd { position: absolute; top: 8px; right: 8px; }
+.rv-choice.on { border: 2px solid var(--ink); background: var(--paper-2); }
+.rv-more { margin: 12px 0; }
+.rv-more summary { cursor: pointer; color: var(--ink-2); }
+
+/* 구절에만 긋는 빨간 줄 */
+.phrase-mark { text-decoration: underline wavy var(--red); text-underline-offset: 4px; text-decoration-thickness: 1.5px; background: rgba(200, 16, 46, 0.07); }
+.rv-choice.on, .rv-choice.on b { color: var(--ink); }
