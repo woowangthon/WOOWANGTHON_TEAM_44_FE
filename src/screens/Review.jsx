@@ -103,8 +103,23 @@ function ReviewRun({ runId }) {
         <div>
           {mode === 'items' && it && (
             <section className="sheet review-item">
-              <p className="li-head"><b>{it.id}</b> · {it.source === 'both' ? '두 감사 일치' : it.source === 'one' ? '한 감사만' : '사람 추가'} · <b>{it.grade}</b>{it.gradeSplit ? '(감사 간 등급 엇갈림)' : ''} · {it.pattern} · {it.review}{it.originConfirmed ? ' · 근원 확정' : ''} <span className="muted">({cur + 1}/{order.length})</span></p>
-              <p>근원 <b>{it.origin}</b>{it.spread?.length ? <> → 번짐 {it.spread.join(', ')}</> : null} 「{it.wrongText}」</p>
+              <p className="li-head"><b>{it.id}</b> · {it.source === 'both' ? '두 감사 일치' : it.source === 'one' ? '한 감사만' : '사람 추가'} · <b>{it.grade}</b>{it.gradeSplit ? '(감사 간 등급 엇갈림)' : ''} · {it.pattern} · {({ pending: '검토 전', approved: '승인', edited: '고침', deleted: '삭제', added: '사람 추가' })[it.review] ?? it.review}{it.originConfirmed ? ' · 근원 확정' : ''} <span className="muted">({cur + 1}/{order.length})</span></p>
+              <p>근원 <b>{it.origin}</b>{it.spread?.length ? <> → 번짐 {it.spread.join(', ')}</> : null}</p>
+              {/* 무엇이 틀렸다는지 바로 보이게: AI 동료가 쓴 문장 전체(틀린 구절 표시)와 감사가 댄 원자료 근거 */}
+              {(() => {
+                const text = run.stages.flatMap((st) => st.units).find((u) => u.uid === it.origin)?.text ?? '';
+                const w = it.wrongText && text.includes(it.wrongText) ? it.wrongText : '';
+                const [a, ...b] = w ? text.split(w) : [text];
+                return (
+                  <blockquote className="rv-unit"><span className="small muted">AI 동료가 쓴 문장({it.origin})</span><br />
+                    {w ? <>{a}<mark className="rv-wrong">{w}</mark>{b.join(w)}</> : <>{text}{it.wrongText ? <><br /><span className="small">틀린 구절: 「{it.wrongText}」</span></> : null}</>}
+                  </blockquote>
+                );
+              })()}
+              {(it.evidence ?? []).filter((e) => e.quote).length > 0 && (
+                <ul className="rv-evid small">{it.evidence.filter((e) => e.quote).map((e, i) => <li key={i}><b>{e.ref}</b> 「{e.quote}」</li>)}</ul>
+              )}
+              {it.gradeSplit && <p className="small muted">두 감사의 등급이 달라 높은 쪽({it.grade})을 임시로 따랐습니다. 아래 두 설명을 보고 1·2·3으로 정해 주세요.</p>}
               {Object.entries(it.byAudit ?? {}).map(([c, b]) => (
                 <p key={c} className="small"><b>{c}({modelName(b.model)}) {b.grade}</b> 근원 {b.origin}: {b.why} <span className="muted">코드: 구절 {b.code?.wrongInUnit ? '○' : '×'} · 근거 {b.code?.evidence?.filter((e) => e.found).length ?? 0}/{b.code?.evidence?.length ?? 0}{b.code?.numNotInSource?.length ? ` · 원자료에 없는 숫자 ${b.code.numNotInSource.join(',')}` : ''}</span></p>
               ))}

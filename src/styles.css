@@ -89,7 +89,7 @@ h3 { font-size: 1rem; margin: 1.2em 0 0.4em; }
 /* 도장 */
 .stamp-mark { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%;
   border: 3px double currentColor; font-family: var(--serif); font-weight: 700; font-size: 1.05rem; letter-spacing: 0.05em;
-  transform: rotate(-12deg); opacity: 0.88; mix-blend-mode: multiply; text-align: center; line-height: 1.1; }
+  transform: rotate(-12deg); opacity: 0.85; text-align: center; line-height: 1.1; }
 .stamp-small { width: 50px; height: 50px; font-size: 0.82rem; border-width: 3px; }
 .stamp-sign { color: var(--seal); border-style: solid; border-width: 2px; font-size: 0.7rem; transform: rotate(-6deg); }
 .stamp-ok { color: var(--ok); }
@@ -422,7 +422,7 @@ button.line:hover { background: var(--paper-2); }
 /* 입력할 때마다 아래 페이지 전체가 다시 그려져 깜빡이지 않게: 편집 창을 자기 층으로 떼고(translateZ·contain), 큰 그림자 대신 얇은 그림자 */
 .mark-editor { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0 auto; width: min(720px, calc(100vw - 32px)); background: var(--paper); border: 2px solid var(--ink);
   padding: 12px 14px; z-index: 20; box-shadow: 0 4px 0 rgba(0,0,0,0.18); max-height: 80vh; overflow: auto;
-  transform: translateZ(0); will-change: transform; contain: layout paint; isolation: isolate; }
+  contain: layout paint; }
 .mark-editor label { display: block; margin: 6px 0; }
 .mark-editor select, .mark-editor input, .mark-editor textarea, .review input, .review textarea, .review select, .decision textarea { width: 100%; font: inherit; padding: 5px 7px; border: 1px solid var(--line); border-radius: 3px; background: #fff; }
 .mark-editor .check input { width: auto; }
@@ -481,3 +481,8 @@ main, .sheet, .band { overflow-wrap: anywhere; }
 .earlier-stage > summary { cursor: pointer; padding: 10px 0; list-style-position: inside; }
 .earlier-stage > summary:hover { background: var(--paper-2); }
 .earlier-stage .stage { border-top: 0; padding-top: 0; }
+
+/* 검수: 근원 문장과 근거 */
+.rv-unit { margin: 6px 0 8px; padding: 8px 12px; border-left: 3px solid var(--red); background: var(--paper-2); line-height: 1.7; }
+.rv-wrong { background: rgba(200, 16, 46, 0.14); color: inherit; text-decoration: underline; text-decoration-color: var(--red); text-underline-offset: 3px; }
+.rv-evid { margin: 0 0 8px; padding-left: 1.2em; color: var(--ink-2); }
