@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { api, modelName } from '../api.js';
 import { DocHead, LedgerTag, Stamp } from '../ui/doc.jsx';
-import { SourcePanel, StageBlock } from '../ui/work.jsx';
+import { SourcePanel, StageBlock, useDialog } from '../ui/work.jsx';
 
 const refs = (it) => [it.origin, ...(it.spread ?? [])];
 
@@ -51,10 +51,10 @@ export default function Result({ run, done }) {
           <div className="score-box"><b>{g.counts.foundA}/{g.counts.A}</b><span>A등급 오류 찾음</span></div>
           <div className="score-box"><b>{g.counts.falseMarks}</b><span>헛짚음(장부에 없는 곳)</span></div>
           <div className="score-box"><b>{g.decisionOk ? '맞음' : '틀림'}</b><span>결재 판정({g.shouldReject ? '최종본에 A가 남아 반려가 맞음' : '최종본에 A가 없어 승인이 맞음'})</span></div>
-          <div className="score-box"><b>{g.counts.originable ? `${g.counts.originHits}/${g.counts.originable}` : '—'}</b><span>근원(멈췄어야 할 곳) 짚음</span></div>
-          <div className="score-box"><b>{done.answer?.sourceViews ?? '—'}</b><span>원자료 대조 횟수</span></div>
+          <div className="score-box"><b>{g.counts.originable ? `${g.counts.originHits}/${g.counts.originable}` : '—'}</b><span>{g.counts.originable ? '처음 생긴 곳(멈췄어야 할 곳) 짚음' : '처음 생긴 곳: 이 판은 사람이 확정한 항목이 없어 세지 않음'}</span></div>
+          <div className="score-box"><b>{done.answer?.sourceViews ?? '—'}</b><span>원자료를 열어 본 횟수</span></div>
         </div>
-        <p className="small muted">점수는 사람이 검수한 장부의 A등급(원자료와 대조하면 누구나 같은 결론이 나는 오류)으로만 매깁니다. B·C는 판단이 갈릴 수 있어 참고로만 보여 드립니다. 기록용 합계 {g.score}점.</p>
+        <p className="small muted">점수는 사람이 검수한 장부의 A등급(원자료와 대조하면 누구나 같은 결론이 나는 오류)으로만 매깁니다. B·C는 판단이 갈릴 수 있어 참고로만 보여 드립니다. 기록용 합계 {g.score}점(찾음 50 · 정확도 20 · 결재 20 · 처음 생긴 곳 10).</p><p className="small muted">헛짚음 = 장부에 없는 곳에 그은 빨간 줄입니다.</p>
 
         <Learned A={A} perOf={perOf} falseMarks={g.falseMarks} decisionOk={g.decisionOk} shouldReject={g.shouldReject} />
 
@@ -66,8 +66,8 @@ export default function Result({ run, done }) {
             return (
               <li key={it.id} className={p?.found ? 'found' : 'missed'}>
                 <p className="li-head">
-                  <span className={`tag ${p?.found ? '' : 'tag-red'}`}>{p?.found ? '찾음' : '놓침'}</span> <b>{it.pattern}</b> · 근원 <button className="linkish" onClick={() => setFocus(it.id)}>{it.origin}</button>
-                  {it.spread.length > 0 && <> → 번짐 {it.spread.join(' → ')}</>}
+                  <span className={`tag ${p?.found ? '' : 'tag-red'}`}>{p?.found ? '찾음' : '놓침'}</span> <b>{it.pattern}</b> · 처음 생긴 곳 <button className="linkish" onClick={() => setFocus(it.id)} aria-label={`${it.origin} 근거 원자료 보기`}>{it.origin}</button>
+                  {it.spread.length > 0 && <> → 옮겨진 곳 {it.spread.join(' → ')}</>}
                 </p>
                 <p>「{it.wrongText}」 — {it.why}</p>
                 {!p?.found && <p className="stop-tip"><b>어디서 멈췄어야 했나:</b> {it.origin.split('.')[0]} 단계. 여기서 원자료와 대조했으면 {it.spread.length ? `${it.spread.map((u) => u.split('.')[0]).filter((v, i, a) => a.indexOf(v) === i).join('·')}로 번지지 않았습니다` : '최종본에 남지 않았습니다'}.</p>}
@@ -123,7 +123,7 @@ function Triage({ tri, marks, items }) {
       {fresh.length > 0 && <><p className="small"><b>장부에 없는 곳에 그은 줄</b></p>
         <ul className="small">{fresh.map((j) => <li key={j.uid}><b>{j.uid}</b> {j.verdict === 'grounded' ? <span className="tag">{VERDICT.grounded}</span> : VERDICT[j.verdict]} — {j.why}{j.evidence.filter((e) => e.found).length > 0 && <span className="muted"> (근거 {j.evidence.filter((e) => e.found).map((e) => `${e.ref} 「${e.quote}」`).join(' / ')})</span>}</li>)}</ul></>}
       {same.length > 0 && <><p className="small"><b>장부 항목과 같은 칸에 그은 줄</b> (칸이 겹쳐 「찾음」으로 셌지만, 이유까지 같은지 따로 봅니다)</p>
-        <ul className="small">{same.map((j) => <li key={j.uid}><b>{j.uid}</b> ({(j.items ?? []).join(', ')}) {VERDICT[j.verdict]} — {j.why}{marks[j.uid]?.note ? <span className="muted"> · 내 메모: {marks[j.uid].note}</span> : null}</li>)}</ul></>}
+        <ul className="small">{same.map((j) => <li key={j.uid}><b>{j.uid}</b> {VERDICT[j.verdict]} — {j.why}{marks[j.uid]?.note ? <span className="muted"> · 내 메모: {marks[j.uid].note}</span> : null}</li>)}</ul></>}
       <p className="small muted">판정 모델 {tri.model ?? '—'} · {tri.sec ?? '—'}초</p>
     </section>
   );
@@ -155,6 +155,7 @@ export function Objection({ runId, answerId, ob, items, onClose }) {
   const [evidence, setEvidence] = useState('');
   const [msg, setMsg] = useState('');
   const item = items.find((x) => refs(x).includes(ob.uid));
+  const dref = useDialog(onClose);
   const send = async () => {
     try {
       const r = await api.objection({ runId, answerId, kind, uid: ob.uid, item: item?.id ?? null, evidence: evidence.split(/[\s,]+/).filter(Boolean), reason });
@@ -162,7 +163,7 @@ export function Objection({ runId, answerId, ob, items, onClose }) {
     } catch (e) { setMsg(e.message); }
   };
   return (
-    <div className="mark-editor" role="dialog" aria-label="이의 제기">
+    <div className="mark-editor" role="dialog" aria-modal="true" aria-label="이의 제기" ref={dref}>
       <p><b>{ob.uid}</b> 이의 제기</p>
       <div className="seg">
         <button className={kind === 'missing' ? 'on btn' : 'btn'} onClick={() => setKind('missing')}>장부에 없는 오류다</button>

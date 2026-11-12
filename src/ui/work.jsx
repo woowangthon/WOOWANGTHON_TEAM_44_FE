@@ -1,5 +1,18 @@
 // 작업 기록 보기 부품: 원자료 패널, 단계별 산출물(단위마다 누를 수 있음), 표시 편집
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+/** 떠 있는 창: 열리면 첫 입력·버튼으로 초점, Esc로 닫기, 닫으면 원래 자리로 초점 */
+export function useDialog(onClose) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const back = document.activeElement;
+    ref.current?.querySelector('input, textarea, select, button')?.focus();
+    const on = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose?.(); } };
+    window.addEventListener('keydown', on);
+    return () => { window.removeEventListener('keydown', on); if (back && document.contains(back)) back.focus?.(); };
+  }, []);
+  return ref;
+}
 
 export const PATTERNS = ['한정어·조건 탈락', '근거보다 큰 결론', '원자료에 없는 내용', '단위·기준 시점 혼동', '날짜·기간 오류', '숫자·계산 틀림', '방향·주체 바뀜', '지시 누락', '중요 정보 누락', '원자료에 없는 인용', '기타'];
 const INPUT_KO = { sources: '원자료', brief: '팀장 지시' };
@@ -16,7 +29,7 @@ export function SourcePanel({ docs, highlight = [], onView, compact }) {
     <section className={`src-panel ${compact ? 'src-compact' : ''}`} aria-label="원자료">
       <div className="src-tabs" role="tablist">
         {keys.map((k) => (
-          <button key={k} role="tab" aria-selected={k === tab} className={k === tab ? 'on' : ''} onClick={() => { setTab(k); onView?.(); }} title={docs[k].title}>
+          <button key={k} role="tab" aria-selected={k === tab} className={k === tab ? 'on' : ''} onClick={() => { setTab(k); onView?.(); }} title={docs[k].title} aria-label={`원자료 ${k}: ${docs[k].title}`}>
             {k}
           </button>
         ))}
@@ -46,7 +59,7 @@ const cls = (uid, marks, review, text) => {
   return c.join(' ');
 };
 
-const phraseOf = (m, text) => (m?.quote && text && text.includes(m.quote) ? m.quote : '');
+import { phraseOf, cleanPicked } from './phrase.js';
 /** 글 안에서 고른 구절만 빨간 줄로 */
 const withPhrase = (text, q) => {
   if (!q || !text.includes(q)) return text;
@@ -63,11 +76,8 @@ const pickedPhrase = (root) => {
   // 칸을 넘어 끌었으면 시작한 칸 안으로 자른다
   if (!el.contains(r.startContainer)) r.setStart(el, 0);
   if (!el.contains(r.endContainer)) r.setEnd(el, el.childNodes.length);
-  const box = el.querySelector('.unit-note');
-  let t = r.toString();
-  if (box && t.includes(box.textContent)) t = t.replace(box.textContent, '');
-  t = t.replace(/^\s*[a-z]+\d+\s+/i, '').replace(/\s+/g, ' ').trim(); // 앞의 칸 번호(e2 등)는 뺀다
-  return t.length >= 2 ? { uid: el.dataset.uid, quote: t } : null;
+  const t = cleanPicked(r.toString(), el.querySelector('.unit-note')?.textContent ?? '');
+  return t ? { uid: el.dataset.uid, quote: t } : null;
 };
 const hasSelection = () => { const sel = typeof window !== 'undefined' ? window.getSelection() : null; return !!sel && !sel.isCollapsed; };
 
@@ -133,8 +143,9 @@ export function MarkEditor({ uid, text, mark, quote: picked, onSave, onRemove, o
   const [pattern, setPattern] = useState(mark?.pattern ?? '');
   const [origin, setOrigin] = useState(!!mark?.origin);
   const [note, setNote] = useState(mark?.note ?? '');
+  const ref = useDialog(onClose);
   return (
-    <div className="mark-editor" role="dialog" aria-label={`${uid} 표시`}>
+    <div className="mark-editor" role="dialog" aria-modal="true" aria-label={`${uid} 빨간 줄`} ref={ref}>
       <p className="small"><b>{uid}</b> {withPhrase(text, quote && text.includes(quote) ? quote : '')}</p>
       <label className="small">틀린 구절(문장에서 드래그하면 채워집니다. 비우면 문장 전체에 줄)<input value={quote} maxLength={300} onChange={(e) => setQuote(e.target.value)} placeholder="예: 별도 마감일 없음" /></label>
       {quote && !text.replace(/ \| /g, ' ').includes(quote) && !text.includes(quote) && <p className="small error">이 구절이 문장에 그대로 없습니다. 문장에서 드래그해 고르거나 비워 두세요.</p>}
@@ -144,7 +155,7 @@ export function MarkEditor({ uid, text, mark, quote: picked, onSave, onRemove, o
           {PATTERNS.map((p) => <option key={p}>{p}</option>)}
         </select>
       </label>
-      <label className="small check"><input type="checkbox" checked={origin} onChange={(e) => setOrigin(e.target.checked)} /> 여기서 처음 생겼다(근원)</label>
+      <label className="small check"><input type="checkbox" checked={origin} onChange={(e) => setOrigin(e.target.checked)} /> 이 오류는 여기서 처음 생겼다</label>
       <label className="small">메모<textarea className="note-box" rows={3} value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} placeholder="원자료와 무엇이 다른지" /></label>
       <div className="row-btns">
         <button className="btn btn-primary" onClick={() => onSave({ pattern, origin, note, ...(quote.trim() ? { quote: quote.trim() } : {}) })}>빨간 줄 긋기</button>

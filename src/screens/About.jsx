@@ -18,10 +18,10 @@ export default function About() {
     <main className="about">
       <h1>만든 방법과 검증</h1>
       <h2>실제 검사가 보는 것과 여기서 하는 것</h2>
-      <table className="eval-table">
+      <div className="table-wrap"><table className="eval-table">
         <thead><tr><th>실제 검사·기준</th><th>여기서 하는 것</th></tr></thead>
         <tbody>{MAP.map((m) => <tr key={m.src}><td>{m.test} <a className="small" href={m.url} target="_blank" rel="noreferrer">{m.src}</a></td><td>{m.here}</td></tr>)}</tbody>
-      </table>
+      </table></div>
 
       <h2>작업 기록과 정답표를 만드는 방법</h2>
       <ol>
@@ -33,18 +33,27 @@ export default function About() {
       </ol>
       <p className="small">표시: 「정답표: 사람 검수 완료 · 장부 n판」 / 「AI 감사(두 회사) · 사람 확인 전」. 점수는 A등급(원자료와 대조하면 누구나 같은 결론이 나는 오류)으로만 매기고 B·C는 참고로만 보여 줍니다.</p>
 
+      <h2>기술 구성</h2>
+      <ul>
+        <li><b>모델 호출 한 곳</b>: 세 회사(Anthropic·OpenAI·Google)를 같은 모양으로 부르는 부분을 직접 만들었습니다. 답은 JSON 스키마로 받고, 형식이 깨지면 사유를 붙여 한 번 다시 요청하며(내용은 고치지 않음), 회사별 하루 금액 상한과 호출 기록을 둡니다. 긴 감사는 스트리밍으로 받아 서버 대기 한도(300초)에 끊기지 않게 했습니다.</li>
+        <li><b>직접 만든 것</b>: 미션 실행기(단계마다 받을 것만 넘김), 감사 지시문, 코드 대조(근거 구절·숫자·남은 날 계산), 감사 묶기, 장부 판 관리, 채점, AI 1차 판정, 화면.</li>
+        <li><b>외부 기술</b>: 모델 API(세 회사), 저장소 Upstash Redis, 배포 Vercel(서버 함수 5개), 화면 React·Vite.</li>
+        <li><b>한 번 부를 때 비용과 시간(실험 기준)</b>: 작업 한 판(5단계) 약 $0.17·81~106초, 감사 한 번 약 $0.08~0.17·20~80초, AI 1차 판정 한 번 약 $0.02·5~10초.</li>
+      </ul>
+
       <h2>검증 수치</h2>
+      <p className="small">아래 첫 표의 시험지만 코드가 오류를 심어 만든 것입니다. 정답을 아는 과제로 감사 모델의 눈을 재기 위해서입니다. 사용자가 푸는 판에는 오류를 심지 않습니다.</p>
       <h3>감사 모델은 심은 오류를 찾는가</h3>
       <p className="small muted">{TESTSET.note} ({TESTSET.at})</p>
-      <table className="eval-table"><thead><tr><th>감사 모델</th><th>회사</th><th>찾음</th><th>헛짚음(문장)</th></tr></thead>
-        <tbody>{TESTSET.rows.map((r) => <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td></tr>)}</tbody></table>
+      <div className="table-wrap"><table className="eval-table"><thead><tr><th>감사 모델</th><th>회사</th><th>찾음</th><th>헛짚음(문장)</th></tr></thead>
+        <tbody>{TESTSET.rows.map((r) => <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td></tr>)}</tbody></table></div>
       <h3>저절로 생긴 오류는 어떤 모양인가</h3>
       <p className="small muted">{NATURAL.note}</p>
-      <table className="eval-table"><tbody>{NATURAL.rows.map((r) => <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td></tr>)}</tbody></table>
+      <div className="table-wrap"><table className="eval-table"><tbody>{NATURAL.rows.map((r) => <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td></tr>)}</tbody></table></div>
       <h3>사람 검수에서 장부가 얼마나 바뀌었나</h3>
       {st?.ledgers?.length ? (
-        <table className="eval-table"><thead><tr><th>판</th><th>AI 장부 항목(A)</th><th>확정 항목(A)</th><th>삭제</th><th>등급 바꿈</th><th>사람이 추가</th></tr></thead>
-          <tbody>{st.ledgers.map((l) => <tr key={l.runId}><td className="mono">{l.runId}</td><td>{l.aiItems}({l.aiA})</td><td>{l.finalItems}({l.finalA})</td><td>{l.deleted}</td><td>{l.gradeChanged}</td><td>{l.added}</td></tr>)}</tbody></table>
+        <div className="table-wrap"><table className="eval-table"><thead><tr><th>판</th><th>AI 장부 항목(A)</th><th>확정 항목(A)</th><th>삭제</th><th>등급 바꿈</th><th>사람이 추가</th></tr></thead>
+          <tbody>{st.ledgers.map((l) => <tr key={l.runId}><td className="mono">{l.runId}</td><td>{l.aiItems}({l.aiA})</td><td>{l.finalItems}({l.finalA})</td><td>{l.deleted}</td><td>{l.gradeChanged}</td><td>{l.added}</td></tr>)}</tbody></table></div>
       ) : <p className="muted small">아직 검수를 마친 판이 없습니다.</p>}
       <h3>이의 제기</h3>
       <p>{st ? `접수 ${st.objections.total}건 · 받아들임 ${st.objections.accepted}건 · 받아들이지 않음 ${st.objections.rejected}건 · 대기 ${st.objections.open}건 (만든 사람 기기 제외)` : '—'}</p>

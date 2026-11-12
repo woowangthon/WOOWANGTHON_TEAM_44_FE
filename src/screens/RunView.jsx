@@ -22,6 +22,7 @@ export default function RunView({ id }) {
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(null); // { answerId, result?, ledger?, pending? }
   const views = useRef(0);
+  const [, bump] = useState(0); // 원자료를 열 때 화면 숫자도 바로 바뀌게
   const t0 = useRef(Date.now());
   const maker = isMaker();
 
@@ -56,7 +57,7 @@ export default function RunView({ id }) {
       const r = await api.answer({ runId: id, marks: Object.entries(marks).map(([uid, m]) => ({ uid, ...m })), decision, reason, elapsedSec: (Date.now() - t0.current) / 1000, sourceViews: views.current });
       myAnswers.set(id, r.answerId);
       dropDraft(id);
-      setDone(r);
+      setDone({ ...r, answer: { marks: Object.entries(marks).map(([uid, m]) => ({ uid, ...m })), sourceViews: views.current } });
       window.scrollTo(0, 0);
     } catch (e) { setError(e.message); } finally { setSending(false); }
   };
@@ -72,11 +73,11 @@ export default function RunView({ id }) {
         <DocHead id={id} title={mission.title} by={`오늘 ${mission.today} · 원자료 ${Object.keys(docs).length}건 · 단계 ${stages.length}개`} drafter="AI 동료" review={null} />
         <p className="brief">{mission.brief}</p>
         <p className="small muted">
-          할 일: 최종본(마지막 두 단계)을 원자료와 대조해 틀린 단위에 빨간 줄을 긋고, 이대로 내보내도 되는지 결재합니다.
+          할 일: 최종본(마지막 두 단계)을 원자료와 대조해 틀린 칸에 빨간 줄을 긋고, 이대로 내보내도 되는지 결재합니다.
           틀린 곳이 없을 수도 있습니다. 앞 단계를 펼쳐 오류가 처음 생긴 곳을 짚으면 「멈췄어야 할 곳」을 맞힌 것입니다.
         </p>
         <div className="work-grid">
-          <aside className="work-src"><SourcePanel docs={docs} onView={() => { views.current++; }} /></aside>
+          <aside className="work-src"><SourcePanel docs={docs} onView={() => { views.current++; bump((x) => x + 1); }} /></aside>
           <div className="work-main">
             {/* 최종본(마지막 두 단계)부터 읽고, 이상한 곳이 있을 때만 앞 단계를 펼쳐 거슬러 올라간다. 팀장이 결과를 검토하는 순서와 같다 */}
             {(() => {
@@ -111,7 +112,7 @@ export default function RunView({ id }) {
 
       {!done && (
         <section className="decision sheet" aria-label="결재">
-          <p className="decision-q">빨간 줄 {Object.keys(marks).length}개 · 원자료 대조 {views.current}번. 최종본을 이대로 내보내도 됩니까?</p>
+          <p className="decision-q">빨간 줄 {Object.keys(marks).length}개 · 원자료를 열어 본 횟수 {views.current}번. 최종본을 이대로 내보내도 됩니까?</p>
           {!playable && <p className="error">이 판은 아직 사람 검수 전이라 채점할 수 없습니다.</p>}
           <div className="decision-btns">
             <button className={`btn stamp-btn stamp-btn-ok ${decision === 'approve' ? 'on' : ''}`} onClick={() => setDecision('approve')} disabled={!playable}>승인</button>

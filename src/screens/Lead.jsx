@@ -6,6 +6,7 @@ import { SourcePanel, StageBlock, inputsKo } from '../ui/work.jsx';
 import { Objection } from './Result.jsx';
 
 const KIND_KO = { list: '목록', table: '표', sentences: '문장', report: '보고', lines: '짧은 줄', check: '확인(원자료 대조)' };
+const FATE = { final: '최종본에 남음', earlier: '앞 단계에만 있음', blocked: '반려로 막음', remained: '반려했지만 비슷한 문장이 남음' };
 const STYLE_KO = { base: '기본(단계로 나눴지만 뒤 단계는 앞 결과만 받음)', rough: '대충(한 번에 맡김)', careful: '잘 맡김(모든 단계에 원자료 + 습관 지시)' };
 
 export default function Lead({ missionId }) {
@@ -72,7 +73,7 @@ export default function Lead({ missionId }) {
                 {i < plan.length - 1 && plan.length < 7 && <button className="btn small" onClick={() => setPlan([...plan.slice(0, i + 1), { kind: 'check', name: '확인', inputs: ['sources', `S${i + 1}`], instruction: '' }, ...plan.slice(i + 1)])}>여기 뒤에 확인 단계 넣기</button>}
               </section>
             ))}
-            <p className="small">작업 모델: <select value={company} onChange={(e) => setCompany(e.target.value)}><option value="">무작위(회사 셋 가운데)</option><option>Anthropic</option><option>OpenAI</option><option>Google</option></select> · 감사는 작업 모델과 다른 회사 둘이 합니다. 하루 2번까지(기기별).</p>
+            <p className="small"><label htmlFor="worker-co">작업 모델:</label> <select id="worker-co" value={company} onChange={(e) => setCompany(e.target.value)}><option value="">무작위(회사 셋 가운데)</option><option>Anthropic</option><option>OpenAI</option><option>Google</option></select> · 감사는 작업 모델과 다른 회사 둘이 합니다. 하루 2번까지(기기별).</p>
             {error && <p className="error">{error}</p>}
             <button className="btn btn-primary" disabled={!ready || !!busy} onClick={() => call('시작', () => api.lead('start', { missionId, plan, workerCompany: company || undefined }))}>{busy || '맡기기 시작'}</button>
           </div>
@@ -143,12 +144,13 @@ function LeadResult({ s }) {
   const myFinal = r.counts.Afinal;
   return (
     <section className="sheet lead-result">
-      <p className="band"><span className="ltag ltag-ai">AI 감사(두 회사) · 사람 확인 전</span> 감사 {r.auditors.map((a) => `${modelName(a.model)} ${a.count}항목`).join(', ')}. 틀렸다고 생각하면 이의를 제기할 수 있습니다.</p>
+      <p className="band"><span className="ltag ltag-ai">{s.label}</span> 감사 {r.auditors.map((a) => `${modelName(a.model)} ${a.count}항목`).join(', ')}. 틀렸다고 생각하면 아래에서 이의를 제기할 수 있습니다.</p>
+      {r.auditErrors?.length > 0 && <p className="notice">감사 {r.auditErrors.length}곳이 응답하지 않아 {r.auditors.length}곳의 감사만 반영했습니다({r.auditErrors.map((e) => e.split(':')[0]).join(', ')}). 같은 미션의 기준 판(감사 여러 곳)과 바로 견주기 어렵습니다.</p>}
       <div className="score-row">
         <div className="score-box"><b>{myFinal}</b><span>최종본에 남은 A</span></div>
-        <div className="score-box"><b>{r.blocked}</b><span>반려로 막은 A</span></div>
+        <div className="score-box"><b>{r.blocked}</b><span>반려로 막은 A{r.remainedAfterReject ? ` · 반려했지만 비슷한 문장이 남은 A ${r.remainedAfterReject}` : ''}</span></div>
         <div className="score-box"><b>{r.humanMatchedA}</b><span>A 중 사람이 확인한 오류와 같은 것</span></div>
-        <div className="score-box"><b>{r.sourceViews}</b><span>원자료 대조</span></div>
+        <div className="score-box"><b>{r.sourceViews}</b><span>원자료를 열어 본 횟수</span></div>
         <div className="score-box"><b>{r.calls}번 · {r.minutes}분</b><span>호출·시간</span></div>
       </div>
       <h3>같은 미션, 다른 맡기기 방식과 견주기</h3>
@@ -159,14 +161,14 @@ function LeadResult({ s }) {
           <tr className="row-warn"><td><b>내 판</b></td><td>1</td><td>{myFinal}</td></tr>
         </tbody>
       </table>
-      <p className="small muted">한 판은 운이 섞입니다. 기준은 같은 미션을 여러 번 돌린 평균입니다(AI 감사 기준, 사람 검수한 판은 검수 장부 기준).</p>
+      <p className="small muted">한 판은 운이 섞입니다. 기준은 같은 미션을 여러 번 돌린 평균입니다(AI 감사 기준, 사람 검수한 판은 검수 장부 기준). 한 번에 맡긴 판은 단계가 2개라 오류가 날 칸 자체가 적습니다. 판 수가 적어 방식 사이의 차이는 아직 결론이 아닙니다.</p>
       <h3>내 지시에 있던 것과 없던 것</h3>
       <ul className="habits">{Object.values(r.habits).map((h) => <li key={h.label} className={h.ok ? 'ok' : 'no'}>{h.ok ? '○' : '×'} {h.label}</li>)}</ul>
       <h3>A등급 {A.length}개</h3>
       <ol className="ledger-list">
         {A.map((it) => (
-          <li key={it.id} className={it.origin.includes('#') ? 'found' : 'missed'}>
-            <p className="li-head"><b>{it.pattern}</b> · 근원 {it.origin}{it.spread.length ? ` → ${it.spread.join(' → ')}` : ''}{it.matchesHuman ? ' · 사람이 확인한 오류와 같음' : ''}{it.origin.includes('#') ? ' · 반려된 결과에서 나옴' : ''}</p>
+          <li key={it.id} className={it.fate === 'blocked' ? 'found' : 'missed'}>
+            <p className="li-head"><span className={`tag ${it.fate === 'blocked' ? '' : 'tag-red'}`}>{FATE[it.fate] ?? ''}</span> <b>{it.pattern}</b> · 처음 생긴 곳 {it.origin}{it.spread.length ? ` → ${it.spread.join(' → ')}` : ''}{it.matchesHuman ? ' · 사람이 확인한 오류와 같음' : ''}</p>
             <p>「{it.wrongText}」 — {it.why}</p>
             {it.prevent && <p className="small"><b>막는 지시:</b> {it.prevent}</p>}
             <p className="small muted">판정: {Object.entries(it.byAudit).map(([c, b]) => `${c} ${b.grade}`).join(', ')}</p>
