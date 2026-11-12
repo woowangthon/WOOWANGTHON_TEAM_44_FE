@@ -473,3 +473,11 @@ main, .sheet, .band { overflow-wrap: anywhere; }
 .habits { list-style: none; padding: 0; } .habits li.no { color: var(--red); } .habits li.ok { color: #2f7d3c; }
 .btn.small { padding: 3px 10px; font-size: 0.82rem; }
 .pattern { margin: 14px 0; } .example { border-top: 1px dotted var(--rule); padding: 6px 0; } .example p { margin: 2px 0; }
+
+/* 사수 모드: 최종본부터 읽기 */
+.read-guide { background: var(--paper-2); border-left: 3px solid var(--ink); padding: 6px 10px; margin: 0 0 6px; }
+.earlier-title { font-size: 1rem; margin: 22px 0 6px; padding-top: 10px; border-top: 2px solid var(--ink); }
+.earlier-stage { border-top: 1px solid var(--rule); }
+.earlier-stage > summary { cursor: pointer; padding: 10px 0; list-style-position: inside; }
+.earlier-stage > summary:hover { background: var(--paper-2); }
+.earlier-stage .stage { border-top: 0; padding-top: 0; }

@@ -47,6 +47,7 @@ export default function RunView({ id }) {
   const { meta, mission, docs, stages } = data;
   if (done && !done.pending && done.result) return <Result run={data} done={done} />;
 
+  const notes = Object.fromEntries(Object.entries(marks).filter(([, m]) => m.note).map(([u, m]) => [u, m.note]));
   const unitText = (uid) => stages.flatMap((s) => s.units).find((u) => u.uid === uid)?.text ?? '';
   const playable = meta.playable || maker;
   const submit = async () => {
@@ -71,13 +72,32 @@ export default function RunView({ id }) {
         <DocHead id={id} title={mission.title} by={`오늘 ${mission.today} · 원자료 ${Object.keys(docs).length}건 · 단계 ${stages.length}개`} drafter="AI 동료" review={null} />
         <p className="brief">{mission.brief}</p>
         <p className="small muted">
-          할 일: 각 단계 산출물을 원자료와 대조해 틀린 단위에 빨간 줄을 긋고, 최종본(마지막 두 단계)을 이대로 내보내도 되는지 결재합니다.
-          틀린 곳이 없을 수도 있습니다. 오류가 처음 생긴 단계를 짚으면 「멈췄어야 할 곳」을 맞힌 것입니다.
+          할 일: 최종본(마지막 두 단계)을 원자료와 대조해 틀린 단위에 빨간 줄을 긋고, 이대로 내보내도 되는지 결재합니다.
+          틀린 곳이 없을 수도 있습니다. 앞 단계를 펼쳐 오류가 처음 생긴 곳을 짚으면 「멈췄어야 할 곳」을 맞힌 것입니다.
         </p>
         <div className="work-grid">
           <aside className="work-src"><SourcePanel docs={docs} onView={() => { views.current++; }} /></aside>
           <div className="work-main">
-            {stages.map((s) => <StageBlock key={s.key} stage={s} marks={marks} onPick={playable && !done ? setEditing : undefined} notes={Object.fromEntries(Object.entries(marks).filter(([, m]) => m.note).map(([u, m]) => [u, m.note]))} />)}
+            {/* 최종본(마지막 두 단계)부터 읽고, 이상한 곳이 있을 때만 앞 단계를 펼쳐 거슬러 올라간다. 팀장이 결과를 검토하는 순서와 같다 */}
+            {(() => {
+              const block = (s) => <StageBlock key={s.key} stage={s} marks={marks} onPick={playable && !done ? setEditing : undefined} notes={notes} />;
+              const finals = stages.slice(-2).reverse();
+              const earlier = stages.slice(0, -2).reverse();
+              return (<>
+                <p className="read-guide small">최종본부터 보여 드립니다. 원자료와 다른 곳이 보이면 아래 앞 단계를 펼쳐 그 내용이 처음 생긴 곳을 찾으세요.</p>
+                {finals.map(block)}
+                <h3 className="earlier-title">앞 단계 <span className="small muted">거슬러 올라가며 확인</span></h3>
+                {earlier.map((s) => {
+                  const n = s.units.filter((u) => marks[u.uid]).length;
+                  return (
+                    <details key={s.key} className="earlier-stage">
+                      <summary><b>{s.key}</b> {s.name} <span className="small muted">· 단위 {s.units.length}개{n ? ` · 빨간 줄 ${n}` : ''}</span></summary>
+                      {block(s)}
+                    </details>
+                  );
+                })}
+              </>);
+            })()}
           </div>
         </div>
       </div>
