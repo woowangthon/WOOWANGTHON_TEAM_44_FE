@@ -47,6 +47,7 @@ const rv = () => ({ 'x-review-code': reviewCode.get() });
 
 export const api = {
   missions: () => req('/api/missions'),
+  mission: (id) => req(`/api/missions?mission=${encodeURIComponent(id)}`),
   run: (id) => req(`/api/missions?run=${encodeURIComponent(id)}`),
   answer: (b) => req('/api/play', { action: 'answer', ...b, ...who() }),
   result: (answerId) => req('/api/play', { action: 'result', answerId }),

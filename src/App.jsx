@@ -6,6 +6,10 @@ import Home from './screens/Home.jsx';
 import RunView from './screens/RunView.jsx';
 import Review from './screens/Review.jsx';
 import Placeholder from './screens/Placeholder.jsx';
+import Lead from './screens/Lead.jsx';
+import Patterns from './screens/Patterns.jsx';
+import Me from './screens/Me.jsx';
+import About from './screens/About.jsx';
 
 // 주소: #/ 미션, #/r/<판> 사수 모드, #/lead/<미션> 팀장 모드, #/patterns 실패 패턴, #/me 내 기록, #/about 만든 방법과 검증, #/review[/<판>] 만든 사람 검수
 const ID = '([a-z0-9][a-z0-9.-]+)';
@@ -34,10 +38,10 @@ export default function App() {
   const page = {
     run: <RunView key={route.id} id={route.id} />,
     review: <Review key={route.id ?? 'q'} runId={route.id} />,
-    lead: <Placeholder title="팀장 모드" />,
-    patterns: <Placeholder title="실패 패턴" />,
-    me: <Placeholder title="내 기록" />,
-    about: <Placeholder title="만든 방법과 검증" />,
+    lead: <Lead key={route.id} missionId={route.id} />,
+    patterns: <Patterns />,
+    me: <Me />,
+    about: <About />,
   }[route.page] ?? <Home />;
   return (<><Header maker={maker} page={route.page} />{page}<Footer /></>);
 }
