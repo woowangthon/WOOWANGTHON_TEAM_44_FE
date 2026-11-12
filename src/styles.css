@@ -32,8 +32,7 @@
 body {
   margin: 0;
   background-color: var(--desk);
-  background-image: radial-gradient(rgba(90, 70, 40, 0.06) 1px, transparent 1px);
-  background-size: 6px 6px;
+  /* 6px 점무늬 배경은 긴 페이지에서 입력할 때마다 다시 그리는 비용이 커 뺐다(깜빡임) */
 }
 a { color: inherit; }
 button { font: inherit; color: inherit; }
@@ -421,12 +420,13 @@ button.line:hover { background: var(--paper-2); }
 .work-list { margin: 4px 0; padding-left: 1.2em; font-size: 0.92rem; }
 .work-list li { margin: 2px 0; }
 /* 입력할 때마다 아래 페이지 전체가 다시 그려져 깜빡이지 않게: 편집 창을 자기 층으로 떼고(translateZ·contain), 큰 그림자 대신 얇은 그림자 */
-.mark-editor { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0 auto; width: min(560px, calc(100vw - 32px)); background: var(--paper); border: 2px solid var(--ink);
+.mark-editor { position: fixed; left: 0; right: 0; bottom: 16px; margin: 0 auto; width: min(720px, calc(100vw - 32px)); background: var(--paper); border: 2px solid var(--ink);
   padding: 12px 14px; z-index: 20; box-shadow: 0 4px 0 rgba(0,0,0,0.18); max-height: 80vh; overflow: auto;
   transform: translateZ(0); will-change: transform; contain: layout paint; isolation: isolate; }
 .mark-editor label { display: block; margin: 6px 0; }
 .mark-editor select, .mark-editor input, .mark-editor textarea, .review input, .review textarea, .review select, .decision textarea { width: 100%; font: inherit; padding: 5px 7px; border: 1px solid var(--line); border-radius: 3px; background: #fff; }
 .mark-editor .check input { width: auto; }
+.mark-editor .note-box { min-height: 4.8em; max-height: 40vh; resize: vertical; field-sizing: content; line-height: 1.5; }
 .row-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .decision.sheet { margin: 16px 0 0; position: static; display: block; }
 .decision label { display: block; margin: 8px 0; }

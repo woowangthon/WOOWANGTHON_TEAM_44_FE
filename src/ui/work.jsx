@@ -114,7 +114,7 @@ export function MarkEditor({ uid, text, mark, onSave, onRemove, onClose }) {
         </select>
       </label>
       <label className="small check"><input type="checkbox" checked={origin} onChange={(e) => setOrigin(e.target.checked)} /> 여기서 처음 생겼다(근원)</label>
-      <label className="small">메모 한 줄<input value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} placeholder="원자료와 무엇이 다른지" /></label>
+      <label className="small">메모<textarea className="note-box" rows={3} value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} placeholder="원자료와 무엇이 다른지" /></label>
       <div className="row-btns">
         <button className="btn btn-primary" onClick={() => onSave({ pattern, origin, note })}>빨간 줄 긋기</button>
         {mark && <button className="btn" onClick={onRemove}>지우기</button>}
