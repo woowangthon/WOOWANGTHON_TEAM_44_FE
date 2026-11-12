@@ -1,4 +1,4 @@
-// BE 호출과 이 브라우저에만 두는 값(기기 ID, 만든 사람 표시, 내 기록).
+// BE 호출과 이 브라우저에만 두는 값(기기 ID, 만든 사람 표시, 검수 코드).
 const BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
 
 export const store = {
@@ -27,32 +27,40 @@ export function isMaker() {
   return store.get('ss:maker') === '1';
 }
 
-/** 내 기록: 이 브라우저에만 남는다 */
-export const myRecords = {
-  all: () => store.json('ss:records', []),
-  add(r) { store.set('ss:records', JSON.stringify([r, ...myRecords.all()].slice(0, 100))); },
+/** 이 브라우저에서 푼 판: runId → answerId */
+export const myAnswers = {
+  all: () => store.json('ss2:answers', {}),
+  set(runId, answerId) { const a = myAnswers.all(); a[runId] = answerId; store.set('ss2:answers', JSON.stringify(a)); },
 };
+export const reviewCode = { get: () => store.get('ss2:review') ?? '', set: (v) => store.set('ss2:review', v) };
 
-/** 이 브라우저에서 결재한 과제 id(목록의 「결재함」 표시용) */
-export const doneIds = () => new Set(myRecords.all().map((r) => r.taskId));
-
-async function req(path, body) {
+async function req(path, body, headers = {}) {
   const r = await fetch(`${BASE}${path}`, body
-    ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
-    : {});
+    ? { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) }
+    : { headers });
   const j = await r.json().catch(() => ({ error: `서버 응답을 읽지 못했습니다(${r.status})` }));
   if (!r.ok) throw Object.assign(new Error(j.error || `요청 실패(${r.status})`), { status: r.status });
   return j;
 }
+const who = () => ({ deviceId: deviceId(), maker: isMaker() });
+const rv = () => ({ 'x-review-code': reviewCode.get() });
 
 export const api = {
-  tasks: () => req('/api/tasks'),
-  task: (id) => req(`/api/task?id=${encodeURIComponent(id)}`),
-  grade: (b) => req('/api/grade', { ...b, deviceId: deviceId(), maker: isMaker() }),
-  coach: (b) => req('/api/coach', { ...b, deviceId: deviceId() }),
-  livePool: () => req('/api/live'),
-  liveStart: (b) => req('/api/live', { op: 'start', ...b, deviceId: deviceId(), maker: isMaker() }),
-  liveStep: (jobId) => req('/api/live', { op: 'step', jobId }),
+  missions: () => req('/api/missions'),
+  run: (id) => req(`/api/missions?run=${encodeURIComponent(id)}`),
+  answer: (b) => req('/api/play', { action: 'answer', ...b, ...who() }),
+  result: (answerId) => req('/api/play', { action: 'result', answerId }),
+  objection: (b) => req('/api/play', { action: 'objection', ...b, ...who() }),
+  history: () => req('/api/play', { action: 'history', deviceId: deviceId() }),
   stats: () => req('/api/stats'),
-  feedback: (b) => req('/api/feedback', { ...b, deviceId: deviceId(), maker: isMaker() }),
+  lead: (action, b = {}) => req('/api/lead', { action, ...b, ...who() }),
+  reviewQueue: () => req('/api/review', null, rv()),
+  reviewRun: (id, force) => req(`/api/review?run=${encodeURIComponent(id)}${force ? '&force=1' : ''}`, null, rv()),
+  reviewOp: (runId, op) => req('/api/review', { runId, op }, rv()),
+  reviewFinalize: (runId) => req('/api/review', { runId, finalize: true }, rv()),
+  reviewObjection: (objectionId, accept, note, op) => req('/api/review', { objectionId, accept, note, op }, rv()),
 };
+
+export const COMPANY_KO = { Anthropic: 'Anthropic', OpenAI: 'OpenAI', Google: 'Google' };
+export const modelName = (m) => ({ 'claude-sonnet-5-5': 'Claude Sonnet 5.5', 'claude-opus-5-5': 'Claude Opus 5.5', 'gpt-6.1-sol': 'GPT-6.1 Sol', 'gpt-6-astra': 'GPT-6 Astra', 'gemini-3.8-flash': 'Gemini 3.8 Flash', 'gemini-4-argon': 'Gemini 4 Argon', 'gemini-4-carbon': 'Gemini 4 Carbon' }[m] ?? m);
+export const fmtDate = (iso) => { const d = new Date(iso); return `${d.getMonth() + 1}월 ${d.getDate()}일`; };

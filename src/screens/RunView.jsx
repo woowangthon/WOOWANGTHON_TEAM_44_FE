@@ -1,0 +1,96 @@
+// 사수 모드: AI 동료가 실제로 끝낸 여러 단계 업무의 작업 기록을 검수한다.
+// 단위를 눌러 빨간 줄(패턴·근원·메모) → 승인/반려 → 결과(사람 검수 장부의 A등급으로 채점)
+import { useEffect, useRef, useState } from 'react';
+import { api, myAnswers, isMaker, modelName, fmtDate } from '../api.js';
+import { DocHead, LedgerTag } from '../ui/doc.jsx';
+import { SourcePanel, StageBlock, MarkEditor } from '../ui/work.jsx';
+import Result from './Result.jsx';
+
+export default function RunView({ id }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+  const [marks, setMarks] = useState({});
+  const [editing, setEditing] = useState(null);
+  const [decision, setDecision] = useState('');
+  const [reason, setReason] = useState('');
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(null); // { answerId, result?, ledger?, pending? }
+  const views = useRef(0);
+  const t0 = useRef(Date.now());
+  const maker = isMaker();
+
+  useEffect(() => {
+    setData(null); setError(''); setMarks({}); setDone(null);
+    api.run(id).then((d) => {
+      setData(d);
+      const prev = myAnswers.all()[id];
+      if (prev) api.result(prev).then((r) => setDone({ answerId: prev, ...r })).catch(() => {});
+    }).catch((e) => setError(e.message));
+  }, [id]);
+
+  if (error) return <main><p className="error">{error}</p><a href="#/">미션 목록으로</a></main>;
+  if (!data) return <main><p className="muted">작업 기록을 불러오는 중…</p></main>;
+  const { meta, mission, docs, stages } = data;
+  if (done && !done.pending && done.result) return <Result run={data} done={done} />;
+
+  const unitText = (uid) => stages.flatMap((s) => s.units).find((u) => u.uid === uid)?.text ?? '';
+  const playable = meta.playable || maker;
+  const submit = async () => {
+    setSending(true); setError('');
+    try {
+      const r = await api.answer({ runId: id, marks: Object.entries(marks).map(([uid, m]) => ({ uid, ...m })), decision, reason, elapsedSec: (Date.now() - t0.current) / 1000, sourceViews: views.current });
+      myAnswers.set(id, r.answerId);
+      setDone(r);
+      window.scrollTo(0, 0);
+    } catch (e) { setError(e.message); } finally { setSending(false); }
+  };
+
+  return (
+    <main className="run">
+      <p className="band">
+        이 작업 기록은 {fmtDate(meta.at)} <b>{modelName(meta.worker)}</b>({meta.company})가 실제로 수행한 결과입니다. 결과물은 손대지 않았습니다.
+        {meta.of > 1 ? ` 같은 미션을 ${meta.of}번 돌린 판 가운데 하나입니다.` : ''} <LedgerTag status={meta.ledger.status} version={meta.ledger.version} />
+      </p>
+      {done?.pending && <p className="notice">{done.message} <a href="#/review">검수 화면으로</a></p>}
+      <div className="sheet">
+        <DocHead id={id} title={mission.title} by={`오늘 ${mission.today} · 원자료 ${Object.keys(docs).length}건 · 단계 ${stages.length}개`} drafter="AI 동료" review={null} />
+        <p className="brief">{mission.brief}</p>
+        <p className="small muted">
+          할 일: 각 단계 산출물을 원자료와 대조해 틀린 단위에 빨간 줄을 긋고, 최종본(마지막 두 단계)을 이대로 내보내도 되는지 결재합니다.
+          틀린 곳이 없을 수도 있습니다. 오류가 처음 생긴 단계를 짚으면 「멈췄어야 할 곳」을 맞힌 것입니다.
+        </p>
+        <div className="work-grid">
+          <aside className="work-src"><SourcePanel docs={docs} onView={() => { views.current++; }} /></aside>
+          <div className="work-main">
+            {stages.map((s) => <StageBlock key={s.key} stage={s} marks={marks} onPick={playable && !done ? setEditing : undefined} notes={Object.fromEntries(Object.entries(marks).filter(([, m]) => m.note).map(([u, m]) => [u, m.note]))} />)}
+          </div>
+        </div>
+      </div>
+
+      {editing && (
+        <MarkEditor uid={editing} text={unitText(editing)} mark={marks[editing]}
+          onSave={(m) => { setMarks({ ...marks, [editing]: m }); setEditing(null); }}
+          onRemove={() => { const n = { ...marks }; delete n[editing]; setMarks(n); setEditing(null); }}
+          onClose={() => setEditing(null)} />
+      )}
+
+      {!done && (
+        <section className="decision sheet" aria-label="결재">
+          <p className="decision-q">빨간 줄 {Object.keys(marks).length}개 · 원자료 대조 {views.current}번. 최종본을 이대로 내보내도 됩니까?</p>
+          {!playable && <p className="error">이 판은 아직 사람 검수 전이라 채점할 수 없습니다.</p>}
+          <div className="decision-btns">
+            <button className={`btn stamp-btn stamp-btn-ok ${decision === 'approve' ? 'on' : ''}`} onClick={() => setDecision('approve')} disabled={!playable}>승인</button>
+            <button className={`btn stamp-btn stamp-btn-no ${decision === 'reject' ? 'on' : ''}`} onClick={() => setDecision('reject')} disabled={!playable}>반려</button>
+          </div>
+          {decision === 'reject' && (
+            <label className="small">반려 사유(AI 동료에게 돌려보낼 말)
+              <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} placeholder="예: S2 판정표에서 하이테크과정 나이 조건이 원자료와 다릅니다. 원자료 A를 다시 대조해 고쳐 주세요." />
+            </label>
+          )}
+          {error && <p className="error">{error}</p>}
+          <button className="btn btn-primary" disabled={!decision || sending || (decision === 'reject' && reason.trim().length < 4)} onClick={submit}>{sending ? '보내는 중…' : '결재하고 결과 보기'}</button>
+        </section>
+      )}
+    </main>
+  );
+}

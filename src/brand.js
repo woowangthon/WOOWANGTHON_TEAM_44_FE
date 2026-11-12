@@ -2,5 +2,5 @@
 export const BRAND = {
   name: 'Redline',
   // 이름 아래 붙는 한 줄. 무엇을 하는 곳인지 이름만으로 안 읽힐 때를 위해 늘 함께 둔다
-  sub: 'AI 결과물 검수 연습',
+  sub: 'AI와 일하는 법 연습',
 };
