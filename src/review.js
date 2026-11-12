@@ -37,3 +37,10 @@ export function peerLine(peers, sid) {
   const f = peers.planted?.[sid]?.found ?? 0;
   return `처음 푼 ${n}명 가운데 ${f}명(${Math.round((f / n) * 100)}%)이 찾았습니다.${n < 5 ? ' 아직 수가 적어 참고만 하세요.' : ''}`;
 }
+
+/** 근거 위치 표기: p3 → 3문단, r2 → 표 2행 */
+export function pidLabel(pid) {
+  const m = String(pid).match(/^([pr])(\d+)$/);
+  if (!m) return String(pid);
+  return m[1] === 'r' ? `표 ${m[2]}행` : `${m[2]}문단`;
+}

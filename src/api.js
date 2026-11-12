@@ -33,6 +33,9 @@ export const myRecords = {
   add(r) { store.set('ss:records', JSON.stringify([r, ...myRecords.all()].slice(0, 100))); },
 };
 
+/** 이 브라우저에서 결재한 과제 id(목록의 「결재함」 표시용) */
+export const doneIds = () => new Set(myRecords.all().map((r) => r.taskId));
+
 async function req(path, body) {
   const r = await fetch(`${BASE}${path}`, body
     ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
@@ -46,6 +49,9 @@ export const api = {
   tasks: () => req('/api/tasks'),
   task: (id) => req(`/api/task?id=${encodeURIComponent(id)}`),
   grade: (b) => req('/api/grade', { ...b, deviceId: deviceId(), maker: isMaker() }),
+  livePool: () => req('/api/live'),
+  liveStart: (b) => req('/api/live', { op: 'start', ...b, deviceId: deviceId(), maker: isMaker() }),
+  liveStep: (jobId) => req('/api/live', { op: 'step', jobId }),
   stats: () => req('/api/stats'),
   feedback: (b) => req('/api/feedback', { ...b, deviceId: deviceId(), maker: isMaker() }),
 };
