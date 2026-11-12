@@ -140,14 +140,19 @@ function EditFields({ it, onSave }) {
   const [pattern, setPattern] = useState(it.pattern);
   const [origin, setOrigin] = useState(it.origin);
   const [why, setWhy] = useState(it.why);
-  useEffect(() => { setPattern(it.pattern); setOrigin(it.origin); setWhy(it.why); }, [it.id, it.pattern, it.origin, it.why]);
-  const dirty = pattern !== it.pattern || origin !== it.origin || why !== it.why;
+  // 번진 곳: 이 항목 때문에 틀어진 뒤 단계 단위. 채점에서 여기 그은 빨간 줄도 이 오류를 찾은 것으로 센다
+  const spreadStr = (it.spread ?? []).join(', ');
+  const [spread, setSpread] = useState(spreadStr);
+  useEffect(() => { setPattern(it.pattern); setOrigin(it.origin); setWhy(it.why); setSpread((it.spread ?? []).join(', ')); }, [it.id, it.pattern, it.origin, it.why, spreadStr]);
+  const spreadList = [...new Set(spread.split(/[\s,]+/).filter((x) => /^S\d+(#\d+)?\.[\w]+$/.test(x)))];
+  const dirty = pattern !== it.pattern || origin !== it.origin || why !== it.why || spreadList.join(', ') !== spreadStr;
   return (
-    <details className="small"><summary>고치기(패턴·근원·이유)</summary>
+    <details className="small"><summary>고치기(패턴·근원·번진 곳·이유)</summary>
       <label>패턴<select value={pattern} onChange={(e) => setPattern(e.target.value)}>{PATTERNS.map((p) => <option key={p}>{p}</option>)}</select></label>
       <label>근원 단위<input value={origin} onChange={(e) => setOrigin(e.target.value)} /></label>
+      <label>번진 곳(쉼표로 구분, 같은 오류가 실제로 옮겨진 단위만)<textarea rows={2} value={spread} onChange={(e) => setSpread(e.target.value)} /></label>
       <label>이유<textarea rows={2} value={why} onChange={(e) => setWhy(e.target.value)} /></label>
-      <button className="btn" disabled={!dirty} onClick={() => onSave({ pattern, origin, why })}>고친 것 저장</button>
+      <button className="btn" disabled={!dirty} onClick={() => onSave({ pattern, origin, why, spread: spreadList })}>고친 것 저장</button>
     </details>
   );
 }
