@@ -49,6 +49,7 @@ export const api = {
   tasks: () => req('/api/tasks'),
   task: (id) => req(`/api/task?id=${encodeURIComponent(id)}`),
   grade: (b) => req('/api/grade', { ...b, deviceId: deviceId(), maker: isMaker() }),
+  coach: (b) => req('/api/coach', { ...b, deviceId: deviceId() }),
   livePool: () => req('/api/live'),
   liveStart: (b) => req('/api/live', { op: 'start', ...b, deviceId: deviceId(), maker: isMaker() }),
   liveStep: (jobId) => req('/api/live', { op: 'step', jobId }),

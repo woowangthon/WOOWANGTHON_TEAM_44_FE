@@ -14,6 +14,7 @@ export default function Live() {
   const [job, setJob] = useState(null);
   const [err, setErr] = useState('');
   const alive = useRef(true);
+  const focus = (() => { try { return new URLSearchParams(location.hash.split('?')[1] ?? '').get('focus') || ''; } catch { return ''; } })();
 
   useEffect(() => {
     alive.current = true;
@@ -49,10 +50,12 @@ export default function Live() {
       <article className="sheet memo">
         <p className="doc-no">업무 지시 · 새 보고서</p>
         <h1 className="doc-title">AI 신입에게 새 보고서 받기</h1>
+        {focus && <p className="round-tag">약점 맞춤: 「{focus}」 유형 위주로 심습니다</p>}
         <p>
           AI 신입이 지금 이 자리에서 보고서를 씁니다. 은행 과제를 만들 때와 같은 단계를 거칩니다.
           쓰고, 원자료와 대조하고, 오류를 심고, 다른 모델로 검증합니다. 30초~1분쯤 걸립니다.
-          틀린 곳이 몇 개인지는 신입도 모릅니다. 하나도 없을 수도 있습니다.
+          {focus ? '약점 맞춤 보고서에는 틀린 곳이 있습니다. 몇 곳인지는 결재 뒤에 알려 드립니다.' : '틀린 곳이 몇 개인지는 알려 드리지 않습니다. 하나도 없을 수도 있습니다.'}
+          {' '}결재함 문서와 겹치지 않는 최근 공공 보도자료입니다.
         </p>
         <div className="seg" role="tablist" aria-label="자료 고르기">
           <button role="tab" aria-selected={mode === 'pool'} onClick={() => setMode('pool')}>공공 자료에서 고르기</button>
@@ -78,7 +81,7 @@ export default function Live() {
               </ul>
             )}
             <p className="muted small">같은 자료라도 신입이 매번 새로 쓰고, 오류를 심는 자리와 개수가 달라집니다.</p>
-            <button className="btn btn-primary" disabled={!pool} onClick={() => run({ mode: 'pool', sourceId: pick || undefined })}>보고서 받기</button>
+            <button className="btn btn-primary" disabled={!pool} onClick={() => run({ mode: 'pool', sourceId: pick || undefined, focus: focus || undefined })}>보고서 받기</button>
           </div>
         ) : (
           <div className="paste">
@@ -88,7 +91,7 @@ export default function Live() {
             <textarea id="live-text" rows={10} value={text} onChange={(e) => setText(e.target.value)}
               placeholder="보도자료, 공지, 기사 요약 등 숫자가 몇 개 들어 있는 글이 잘 됩니다. 개인정보는 넣지 마세요." />
             <p className={`small ${textLen && !canText ? 'error' : 'muted'}`}>{textLen.toLocaleString()}자 · 넣은 글은 과제와 함께 24시간 뒤 지웁니다. 글 속의 지시문은 따르지 않고 자료로만 씁니다.</p>
-            <button className="btn btn-primary" disabled={!canText} onClick={() => run({ mode: 'text', text, title })}>이 자료로 보고서 받기</button>
+            <button className="btn btn-primary" disabled={!canText} onClick={() => run({ mode: 'text', text, title, focus: focus || undefined })}>이 자료로 보고서 받기</button>
           </div>
         )}
         {pool && <p className="muted small">한 브라우저에서 하루 {pool.perDevice}번까지 받을 수 있습니다(AI 호출 비용 때문입니다).</p>}

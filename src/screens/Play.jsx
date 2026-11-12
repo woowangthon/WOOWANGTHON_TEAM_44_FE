@@ -13,6 +13,7 @@ export default function Play({ id }) {
   const [stage, setStage] = useState('brief'); // brief | review | interim | reply | report
   const [round, setRound] = useState(1);
   const [marks, setMarks] = useState({});
+  const [notes, setNotes] = useState({});
   const [first, setFirst] = useState(null); // 1차: { marks, decision, interim }
   const [result, setResult] = useState(null);
   const [stamped, setStamped] = useState(null);
@@ -20,7 +21,7 @@ export default function Play({ id }) {
   const startRef = useRef(0);
 
   useEffect(() => {
-    setTask(null); setErr(''); setStage('brief'); setRound(1); setMarks({}); setFirst(null); setResult(null); setStamped(null);
+    setTask(null); setErr(''); setStage('brief'); setRound(1); setMarks({}); setNotes({}); setFirst(null); setResult(null); setStamped(null);
     api.task(id).then(setTask).catch((e) => setErr(e.message));
   }, [id]);
 
@@ -47,7 +48,7 @@ export default function Play({ id }) {
     setStamped(decision);
     const wait = new Promise((r) => setTimeout(r, 650)); // 도장이 찍히는 것을 보여 준다
     try {
-      const list = toMarkList(marks);
+      const list = toMarkList(marks, notes);
       if (round === 1 && decision === '반려') {
         const [it] = await Promise.all([api.grade({ id: task.id, marks: list, decision }), wait]);
         setFirst({ marks: list, decision, interim: it });
@@ -55,7 +56,7 @@ export default function Play({ id }) {
       } else {
         const rounds = round === 1 ? [{ marks: list, decision }] : [{ marks: first.marks, decision: '반려' }, { marks: list, decision }];
         const [r] = await Promise.all([api.grade({ id: task.id, rounds, elapsedSec: sec }), wait]);
-        setResult({ ...r, elapsedSec: sec });
+        setResult({ ...r, elapsedSec: sec, sentRounds: rounds });
         myRecords.add({
           at: new Date().toISOString(), taskId: task.id, title: task.title, live: task.origin === 'live',
           decision, decisionOk: r.decisionOk, rounds: r.rounds, byType: r.byType, score: r.score, ...r.counts,
@@ -68,14 +69,14 @@ export default function Play({ id }) {
     }
   }
 
-  const toRound2 = () => { setRound(2); setMarks({}); setStamped(null); setStage('review'); };
+  const toRound2 = () => { setRound(2); setMarks({}); setNotes({}); setStamped(null); setStage('review'); };
 
   if (stage === 'brief') return <Brief task={task} onStart={begin} />;
   if (stage === 'interim') return <Interim task={task} data={first.interim} onNext={toRound2} />;
   if (stage === 'reply') return <Reply task={task} result={result} onNext={() => setStage('report')} />;
   if (stage === 'report') return <Report task={task} result={result} />;
   return (
-    <Review task={task} sentences={sentences} round={round} marks={marks} setMarks={setMarks}
+    <Review task={task} sentences={sentences} round={round} marks={marks} setMarks={setMarks} notes={notes} setNotes={setNotes}
       elapsed={elapsed} stamped={stamped} onDecide={decide} />
   );
 }
@@ -137,7 +138,7 @@ export function SourcePane({ task, className = '' }) {
   );
 }
 
-function Review({ task, sentences, round, marks, setMarks, elapsed, stamped, onDecide }) {
+export function Review({ task, sentences, round, marks, setMarks, notes, setNotes, elapsed, stamped, onDecide, banner }) {
   const [tab, setTab] = useState('out'); // 좁은 화면: src | out
   const [hint, setHint] = useState('');
   const n = Object.keys(marks).length;
@@ -159,7 +160,7 @@ function Review({ task, sentences, round, marks, setMarks, elapsed, stamped, onD
 
   return (
     <main className="play review">
-      <Stepper at={stamped ? 1 : 0} round={round} />
+      {banner ?? <Stepper at={stamped ? 1 : 0} round={round} />}
       <div className="review-bar">
         <span className="review-title">{round === 2 ? '2차 결재 · 신입이 고쳐 다시 올린 수정본' : '1차 결재'}</span>
         <span className={`timer ${over ? 'over' : ''}`} aria-live="off">
@@ -194,6 +195,9 @@ function Review({ task, sentences, round, marks, setMarks, elapsed, stamped, onD
                           <span className="key">{k + 1}</span>{r}
                         </button>
                       ))}
+                      <input className="note-input" maxLength={150} value={notes[s.sid] ?? ''} aria-label={`${i + 1}번 문장 검토 의견`}
+                        placeholder="검토 의견(선택): 어디가 원자료와 다른가요? 예) 원자료는 100개"
+                        onChange={(e) => setNotes((n) => ({ ...n, [s.sid]: e.target.value }))} onKeyDown={(e) => e.stopPropagation()} />
                     </div>
                   )}
                 </li>

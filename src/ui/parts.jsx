@@ -11,6 +11,7 @@ export function Header({ maker, page }) {
       <nav className="top-nav" aria-label="주 메뉴">
         <a href="#/" aria-current={cur('home')}>결재함</a>
         <a href="#/new" aria-current={cur('new')}>새 보고서 받기</a>
+        <a href="#/exam" aria-current={cur('exam')}>모의 검사</a>
         <a href="#/me" aria-current={cur('me')}>내 기록</a>
         <a href="#/about" aria-current={cur('about')}>만든 방법과 근거</a>
         {maker && <span className="maker-tag" title="이 브라우저의 플레이는 만든 사람 기록으로 따로 셉니다">만든 사람 모드</span>}

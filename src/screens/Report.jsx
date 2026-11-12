@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { api, doneIds } from '../api.js';
 import { Stepper } from '../ui/parts.jsx';
 import { docNo } from '../ui/doc.jsx';
-import { clock, peerLine } from '../review.js';
+import { clock, peerLine, STOP_TIPS, shareText } from '../review.js';
 
 const STEP_NAME = { p1: '작성', p2: '원자료 대조', p3: '오류 심기·검증', p5: '눈 가린 풀이' };
 
@@ -12,6 +12,9 @@ export default function Report({ task, result }) {
   const [fb, setFb] = useState(null); // null | true | false
   const [note, setNote] = useState('');
   const [sent, setSent] = useState(false);
+  const [coach, setCoach] = useState(null); // null | 'loading' | { items, overall } | { error }
+  const [copied, setCopied] = useState(false);
+  const hasNotes = (result.sentRounds ?? []).some((r) => r.marks.some((m) => m.note));
   const no = new Map(task.sentences.map((s, i) => [s.sid, i + 1]));
   const c = result.counts;
   const v = result.verification;
@@ -21,6 +24,19 @@ export default function Report({ task, result }) {
     const done = doneIds();
     api.tasks().then((r) => setNext(r.tasks.find((t) => t.id !== task.id && !t.mini && !done.has(t.id)) ?? null)).catch(() => {});
   }, [task.id]);
+
+  useEffect(() => {
+    if (!hasNotes) return;
+    setCoach('loading');
+    api.coach({ id: task.id, rounds: result.sentRounds })
+      .then((c) => setCoach(c))
+      .catch((e) => setCoach({ error: e.message }));
+  }, [task.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const copy = async () => {
+    const url = task.origin === 'live' ? location.origin : `${location.origin}/#/t/${task.id}`;
+    try { await navigator.clipboard.writeText(shareText(task.title, result, url)); setCopied(true); } catch { setCopied(false); }
+  };
 
   const send = async () => {
     try { await api.feedback({ taskId: task.id, helpful: fb, note }); } catch { /* 반응은 못 보내도 그만 */ }
@@ -65,12 +81,33 @@ export default function Report({ task, result }) {
                   <li key={sid}>
                     <b>{no.get(sid)}번 문장</b> · {type} · {when ?? <span className="red">놓침</span>}
                     {task.origin !== 'live' && <><br /><span className="muted">{peerLine(result.peers, sid)}</span></>}
+                    {!when && STOP_TIPS[type] && <><br /><span className="stop-tip">어디서 멈췄어야 했나: {STOP_TIPS[type]}</span></>}
                   </li>
                 );
               })}
             </ul>
           </section>
         )}
+
+        <section className="coach">
+          <h2>AI 사수의 코칭 <span className="muted small">· 검토 의견에 대한 말(점수에는 넣지 않음)</span></h2>
+          {!hasNotes && <p className="muted">이번에는 검토 의견을 쓰지 않았습니다. 빨간 줄을 그을 때 「어디가 원자료와 다른지」 한 줄을 쓰면, 결재 뒤 AI 사수가 그 의견이 정확했는지 짚어 줍니다.</p>}
+          {coach === 'loading' && <p className="muted" role="status">AI 사수가 검토 의견을 읽는 중…</p>}
+          {coach?.error && <p className="muted">코칭을 받지 못했습니다: {coach.error}</p>}
+          {coach?.items && (
+            <>
+              <ul className="coach-list">
+                {coach.items.map((x) => (
+                  <li key={x.sid} className={`cv-${x.verdict}`}>
+                    <span className="cv-tag">{x.verdict}</span> <b>{x.no}번 문장</b> {x.comment}
+                  </li>
+                ))}
+              </ul>
+              {coach.overall && <p className="pen-line">{coach.overall}</p>}
+              <p className="muted small">코칭 모델 {coach.model}</p>
+            </>
+          )}
+        </section>
 
         <section className="verify">
           <h2>이 보고서는 이렇게 만들고 검증했습니다</h2>
@@ -117,6 +154,7 @@ export default function Report({ task, result }) {
 
       <div className="next">
         {next && <a className="btn btn-primary" href={`#/t/${next.id}`}>다음 문서: {next.title}</a>}
+        <button className="btn" onClick={copy}>{copied ? '복사했습니다' : '결과 한 줄 복사'}</button>
         <a className="btn" href="#/new">AI 신입에게 새 보고서 받기</a>
         <a className="btn" href="#/me">내 기록</a>
         <a className="btn" href="#/">결재함</a>

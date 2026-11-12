@@ -57,6 +57,7 @@ export default function Home() {
           <div className="hero-actions">
             {mini ? <a className="btn btn-primary" href={`#/t/${mini.id}`}>1분 맛보기</a> : <span className="muted">{err || '불러오는 중…'}</span>}
             <a className="btn" href="#/new">AI 신입에게 새 보고서 받기</a>
+            <a className="btn" href="#/exam">모의 검사 (3건 · 12분)</a>
           </div>
         </div>
         <HeroDoc />

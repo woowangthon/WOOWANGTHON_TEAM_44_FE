@@ -23,7 +23,27 @@ export function decisionGate(marks, decision) {
   return { ok: true };
 }
 
-export const toMarkList = (marks) => Object.entries(marks).map(([sid, reason]) => ({ sid, reason }));
+export const toMarkList = (marks, notes = {}) => Object.entries(marks).map(([sid, reason]) => {
+  const note = (notes[sid] ?? '').trim();
+  return note ? { sid, reason, note: note.slice(0, 150) } : { sid, reason };
+});
+
+/** 놓친 오류마다 「어디서 멈추고 확인했어야 했는지」 */
+export const STOP_TIPS = {
+  '숫자·단위': '숫자가 나오면 멈추고 원자료의 같은 숫자를 찾아 단위(%와 %p, 천과 만)까지 한 글자씩 맞춰 보세요.',
+  '원자료에 없음': '「~때문에」「~에 따라」처럼 원인이나 효과를 붙인 구절에서 멈추고, 원자료에 그 말이 있는지 찾아보세요.',
+  '방향·주체가 바뀜': '증가·감소 같은 방향어에서 멈추고, 숫자가 맞더라도 원자료의 방향과 같은지 따로 확인하세요.',
+  '근거보다 큰 결론': '원자료의 「계획」「예정」「최대」「일부」 같은 한정어가 결과물에 남았는지 보세요. 빠지면 단정이 됩니다.',
+  계산: '결과물이 새로 계산한 값은 원자료 숫자로 직접 다시 계산해 보세요.',
+  기타: '문장마다 근거 문단을 하나씩 찾아 짝지어 보세요.',
+};
+
+/** 공유용 한 줄 */
+export function shareText(title, r, url) {
+  const c = r.counts;
+  const found = c.planted ? `틀린 문장 ${c.planted}곳 중 ${c.found}곳 찾음` : '틀린 곳 없는 보고서';
+  return `[Redline] AI 신입 보고서 「${title}」 결재: ${found}, 판정 ${r.decisionOk ? '맞음' : '틀림'}, ${r.score}점. 공채 AI 활용 평가 대비 검수 연습 ${url}`;
+}
 
 export function clock(sec) {
   const s = Math.max(0, Math.floor(sec));
