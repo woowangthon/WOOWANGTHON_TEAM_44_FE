@@ -6,6 +6,12 @@ import { DocHead, LedgerTag } from '../ui/doc.jsx';
 import { SourcePanel, StageBlock, MarkEditor } from '../ui/work.jsx';
 import Result from './Result.jsx';
 
+// 풀던 상태(빨간 줄·결재·시작 시각)를 이 기기에 임시로 둔다. 새로고침해도 이어서 풀 수 있게. 제출하면 지운다.
+const draftKey = (id) => `redline:draft:${id}`;
+const loadDraft = (id) => { try { return JSON.parse(localStorage.getItem(draftKey(id)) || 'null'); } catch { return null; } };
+const saveDraft = (id, d) => { try { localStorage.setItem(draftKey(id), JSON.stringify(d)); } catch { /* 저장 못 해도 풀이는 계속 */ } };
+const dropDraft = (id) => { try { localStorage.removeItem(draftKey(id)); } catch { /* 무시 */ } };
+
 export default function RunView({ id }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -20,13 +26,21 @@ export default function RunView({ id }) {
   const maker = isMaker();
 
   useEffect(() => {
-    setData(null); setError(''); setMarks({}); setDone(null);
+    setData(null); setError(''); setDone(null);
+    const d = loadDraft(id);
+    setMarks(d?.marks ?? {}); setDecision(d?.decision ?? ''); setReason(d?.reason ?? '');
+    t0.current = d?.t0 ?? Date.now(); views.current = d?.views ?? 0;
     api.run(id).then((d) => {
       setData(d);
       const prev = myAnswers.all()[id];
       if (prev) api.result(prev).then((r) => setDone({ answerId: prev, ...r })).catch(() => {});
     }).catch((e) => setError(e.message));
   }, [id]);
+
+  useEffect(() => {
+    if (!data || done) return;
+    saveDraft(id, { marks, decision, reason, t0: t0.current, views: views.current });
+  }, [id, data, done, marks, decision, reason]);
 
   if (error) return <main><p className="error">{error}</p><a href="#/">미션 목록으로</a></main>;
   if (!data) return <main><p className="muted">작업 기록을 불러오는 중…</p></main>;
@@ -40,6 +54,7 @@ export default function RunView({ id }) {
     try {
       const r = await api.answer({ runId: id, marks: Object.entries(marks).map(([uid, m]) => ({ uid, ...m })), decision, reason, elapsedSec: (Date.now() - t0.current) / 1000, sourceViews: views.current });
       myAnswers.set(id, r.answerId);
+      dropDraft(id);
       setDone(r);
       window.scrollTo(0, 0);
     } catch (e) { setError(e.message); } finally { setSending(false); }

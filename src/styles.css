@@ -429,6 +429,9 @@ button.line:hover { background: var(--paper-2); }
 .mark-editor .note-box { min-height: 4.8em; max-height: 40vh; resize: vertical; field-sizing: content; line-height: 1.5; }
 .row-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .decision.sheet { margin: 16px 0 0; position: static; display: block; }
+.decision.sheet .decision-q { margin-bottom: 14px; }
+.decision.sheet .decision-btns { margin-bottom: 18px; }
+.decision.sheet label { margin: 0 0 16px; }
 .decision label { display: block; margin: 8px 0; }
 .score-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
 .score-box { border: 1px solid var(--line); padding: 8px 12px; min-width: 120px; background: var(--paper-2); }
