@@ -1,5 +1,5 @@
 // 사수 모드 결과: A 찾음·헛짚음·판정, 번진 경로, 멈췄어야 할 곳, 패턴·확인 습관·막는 지시, B·C 참고, 이의 제기
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, modelName } from '../api.js';
 import { DocHead, LedgerTag, Stamp } from '../ui/doc.jsx';
 import { SourcePanel, StageBlock } from '../ui/work.jsx';
@@ -11,6 +11,20 @@ export default function Result({ run, done }) {
   const { result: g, ledger: L, before, changed, answerId } = done;
   const [focus, setFocus] = useState(null);
   const [ob, setOb] = useState(null);
+  // AI 1차 판정(표시만, 점수와 무관): 결과를 먼저 보이고 판정은 뒤에서 한 번 부른다. 실패하면 판정 없이 둔다
+  const [tri, setTri] = useState(done.triage ?? null);
+  useEffect(() => {
+    if (!answerId || tri?.status === 'done' || tri?.status === 'failed' || tri?.status === 'skipped') return;
+    let stop = false, n = 0;
+    const go = () => api.triage(answerId).then((r) => {
+      if (stop) return;
+      setTri(r.triage);
+      if (r.triage?.status === 'running' && n++ < 8) setTimeout(go, 15000);
+    }).catch(() => { if (!stop) setTri({ status: 'failed' }); });
+    go();
+    return () => { stop = true; };
+  }, [answerId]);
+  const triOf = (uid) => (tri?.status === 'done' ? tri.judgments.find((j) => j.uid === uid) : null);
   const marks = Object.fromEntries((done.answer?.marks ?? []).map((m) => [m.uid, m]));
   const myMarks = Object.keys(marks).length ? marks : Object.fromEntries((g.perItem ?? []).flatMap((p) => p.hitUnits.map((u) => [u, {}])).concat(g.falseMarks.map((u) => [u, {}])));
   // 단위별 결과 색: 찾은 A, 놓친 A, B·C, 헛짚음
@@ -42,6 +56,8 @@ export default function Result({ run, done }) {
         </div>
         <p className="small muted">점수는 사람이 검수한 장부의 A등급(원자료와 대조하면 누구나 같은 결론이 나는 오류)으로만 매깁니다. B·C는 판단이 갈릴 수 있어 참고로만 보여 드립니다. 기록용 합계 {g.score}점.</p>
 
+        <Learned A={A} perOf={perOf} falseMarks={g.falseMarks} decisionOk={g.decisionOk} shouldReject={g.shouldReject} />
+
         <h2>A등급 오류 {A.length}개</h2>
         {!A.length && <p>이 판에는 A등급 오류가 없습니다. AI 동료가 늘 틀리지는 않습니다. 승인이 맞는 판입니다.</p>}
         <ol className="ledger-list">
@@ -69,7 +85,8 @@ export default function Result({ run, done }) {
             <ul>{BC.map((it) => <li key={it.id}><b>{it.grade}</b> {it.pattern} · {it.origin} 「{it.wrongText}」 — {it.why}</li>)}</ul>
           </details>
         )}
-        {g.falseMarks.length > 0 && <p className="small">헛짚은 곳: {g.falseMarks.join(', ')}. 장부와 생각이 다르면 아래에서 이의를 제기할 수 있습니다.</p>}
+        {g.falseMarks.length > 0 && <p className="small">장부에 없는 곳에 그은 줄: {g.falseMarks.join(', ')}. 장부와 생각이 다르면 아래 작업 기록에서 그 칸을 눌러 이의를 제기할 수 있습니다.</p>}
+        <Triage tri={tri} marks={marks} items={items} />
 
         <h2>작업 기록 다시 보기</h2>
         <p className="small muted">초록 = 찾은 A, 빨강 = 놓친 A, 노랑 = B·C, 회색 줄 = 헛짚음. 단위를 누르면 이의를 제기할 수 있습니다.</p>
@@ -78,13 +95,61 @@ export default function Result({ run, done }) {
           <div className="work-main">{stages.map((s) => <StageBlock key={s.key} stage={s} marks={myMarks} review={review} onPick={(uid) => setOb({ uid, kind: review[uid] && review[uid] !== 'false' ? 'notError' : 'missing' })} />)}</div>
         </div>
       </div>
-      {ob && <Objection run={run} answerId={answerId} ob={ob} items={items} onClose={() => setOb(null)} />}
+      {ob && <Objection runId={run.meta.runId} answerId={answerId} ob={ob} items={items} onClose={() => setOb(null)} />}
       <p className="next"><a className="btn" href="#/">다른 미션</a> <a className="btn" href="#/me">내 기록</a></p>
     </main>
   );
 }
 
-function Objection({ run, answerId, ob, items, onClose }) {
+const VERDICT = {
+  grounded: '새 오류 후보 · 운영자 확인 중',
+  ungrounded: '원자료에서 근거를 찾지 못했습니다',
+  unclear: '판단이 어렵습니다',
+  same: '내 메모가 장부의 이유와 같은 문제를 가리킵니다',
+  different: '같은 칸이지만 내 메모는 장부와 다른 문제를 가리킵니다',
+};
+/** AI 1차 판정 칸: 사람 확인 전, 점수와 무관 */
+function Triage({ tri, marks, items }) {
+  if (tri?.status === 'skipped') return null;
+  if (!tri || tri.status === 'running' || !tri.status) return <p className="small muted triage">AI 1차 판정 중… (내 빨간 줄이 원자료 근거가 있는지 보는 중입니다. 점수와는 관계없습니다)</p>;
+  if (tri.status === 'failed') return null; // 실패하면 판정 없이 결과만
+  const fresh = tri.judgments.filter((j) => j.kind === 'new');
+  const same = tri.judgments.filter((j) => j.kind === 'same');
+  if (!fresh.length && !same.length) return null;
+  return (
+    <section className="triage" aria-label="AI 1차 판정">
+      <h3>내 빨간 줄에 대한 AI 1차 판정 <span className="ltag ltag-ai">AI 1차 판정 · 사람 확인 전</span></h3>
+      <p className="small muted">점수에는 넣지 않습니다. 「새 오류 후보」는 만든 사람이 원자료와 대조해 판정하고, 받아들이면 장부 새 판이 나와 결과가 다시 계산됩니다.</p>
+      {fresh.length > 0 && <><p className="small"><b>장부에 없는 곳에 그은 줄</b></p>
+        <ul className="small">{fresh.map((j) => <li key={j.uid}><b>{j.uid}</b> {j.verdict === 'grounded' ? <span className="tag">{VERDICT.grounded}</span> : VERDICT[j.verdict]} — {j.why}{j.evidence.filter((e) => e.found).length > 0 && <span className="muted"> (근거 {j.evidence.filter((e) => e.found).map((e) => `${e.ref} 「${e.quote}」`).join(' / ')})</span>}</li>)}</ul></>}
+      {same.length > 0 && <><p className="small"><b>장부 항목과 같은 칸에 그은 줄</b> (칸이 겹쳐 「찾음」으로 셌지만, 이유까지 같은지 따로 봅니다)</p>
+        <ul className="small">{same.map((j) => <li key={j.uid}><b>{j.uid}</b> ({(j.items ?? []).join(', ')}) {VERDICT[j.verdict]} — {j.why}{marks[j.uid]?.note ? <span className="muted"> · 내 메모: {marks[j.uid].note}</span> : null}</li>)}</ul></>}
+      <p className="small muted">판정 모델 {tri.model ?? '—'} · {tri.sec ?? '—'}초</p>
+    </section>
+  );
+}
+
+/** 결과에서 배운 것: 놓친 패턴, 멈췄어야 할 곳, 다음에 넣을 지시 한 줄 */
+function Learned({ A, perOf, falseMarks, decisionOk, shouldReject }) {
+  const missed = A.filter((it) => !perOf(it.id)?.found);
+  const pats = [...new Set(missed.map((it) => it.pattern))];
+  const stops = [...new Set(missed.map((it) => it.origin.split('.')[0]))];
+  const prevent = missed.find((it) => it.prevent)?.prevent;
+  return (
+    <section className="learned" aria-label="이번 판에서 배운 것">
+      <h2>이번 판에서 배운 것</h2>
+      <ul>
+        <li>{A.length ? (missed.length ? `A등급 ${A.length}개 가운데 ${missed.length}개를 놓쳤습니다. 놓친 유형: ${pats.join(', ')}.` : `A등급 ${A.length}개를 모두 찾았습니다.`) : '이 판에는 A등급 오류가 없었습니다. AI 동료가 늘 틀리지는 않습니다.'}</li>
+        {missed.length > 0 && <li>멈췄어야 할 곳: {stops.join('·')} 단계. 이 단계 결과를 원자료와 한 번 더 대조했으면 뒤 단계로 번지지 않았습니다.</li>}
+        <li>결재: {decisionOk ? '맞게 판단했습니다' : '판단이 틀렸습니다'}({shouldReject ? '최종본에 A가 남아 반려가 맞음' : '최종본에 A가 없어 승인이 맞음'}).{falseMarks.length ? ` 장부에 없는 곳에 ${falseMarks.length}번 줄을 그었습니다.` : ''}</li>
+        {prevent && <li>다음에 맡길 때 넣을 지시: 「{prevent}」</li>}
+      </ul>
+    </section>
+  );
+}
+
+/** 이의 제기(사수·팀장 모드 결과 공통) */
+export function Objection({ runId, answerId, ob, items, onClose }) {
   const [kind, setKind] = useState(ob.kind);
   const [reason, setReason] = useState('');
   const [evidence, setEvidence] = useState('');
@@ -92,7 +157,7 @@ function Objection({ run, answerId, ob, items, onClose }) {
   const item = items.find((x) => refs(x).includes(ob.uid));
   const send = async () => {
     try {
-      const r = await api.objection({ runId: run.meta.runId, answerId, kind, uid: ob.uid, item: item?.id ?? null, evidence: evidence.split(/[\s,]+/).filter(Boolean), reason });
+      const r = await api.objection({ runId, answerId, kind, uid: ob.uid, item: item?.id ?? null, evidence: evidence.split(/[\s,]+/).filter(Boolean), reason });
       setMsg(r.message);
     } catch (e) { setMsg(e.message); }
   };

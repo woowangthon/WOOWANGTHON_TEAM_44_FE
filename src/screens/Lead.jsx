@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, modelName } from '../api.js';
 import { SourcePanel, StageBlock, inputsKo } from '../ui/work.jsx';
+import { Objection } from './Result.jsx';
 
 const KIND_KO = { list: '목록', table: '표', sentences: '문장', report: '보고', lines: '짧은 줄', check: '확인(원자료 대조)' };
 const STYLE_KO = { base: '기본(단계로 나눴지만 뒤 단계는 앞 결과만 받음)', rough: '대충(한 번에 맡김)', careful: '잘 맡김(모든 단계에 원자료 + 습관 지시)' };
@@ -135,6 +136,9 @@ export default function Lead({ missionId }) {
 function LeadResult({ s }) {
   const r = s.result;
   const L = s.ledger;
+  const [ob, setOb] = useState(null);
+  const inL = (uid) => L.items.some((x) => [x.origin, ...(x.spread ?? [])].includes(uid));
+  const review = Object.fromEntries(L.items.flatMap((x) => [x.origin, ...(x.spread ?? [])].map((u) => [u, x.grade === 'A' ? 'missA' : 'bc'])));
   const A = L.items.filter((x) => x.grade === 'A');
   const myFinal = r.counts.Afinal;
   return (
@@ -170,6 +174,10 @@ function LeadResult({ s }) {
         ))}
       </ol>
       <details><summary>B·C {L.items.length - A.length}개</summary><ul>{L.items.filter((x) => x.grade !== 'A').map((it) => <li key={it.id}>{it.grade} {it.pattern} · {it.origin} — {it.why}</li>)}</ul></details>
+      <h3>감사가 틀렸다고 생각하면</h3>
+      <p className="small">이 장부는 AI 감사만 본 것입니다. 아래 칸을 눌러 「장부에 없는 오류다」 또는 「오류가 아니다」를 근거와 함께 보낼 수 있습니다. 만든 사람이 원자료와 대조해 판정합니다. 빨강 = 감사가 본 A, 노랑 = B·C.</p>
+      <div className="work-main">{[...s.stages].reverse().map((st) => <StageBlock key={st.key} stage={{ ...st, inputs: s.plan.find((p) => p.key === st.key)?.inputs ?? [], instruction: '' }} review={review} onPick={(uid) => setOb({ uid, kind: inL(uid) ? 'notError' : 'missing' })} />)}</div>
+      {ob && <Objection runId={s.id} answerId={null} ob={ob} items={L.items} onClose={() => setOb(null)} />}
     </section>
   );
 }

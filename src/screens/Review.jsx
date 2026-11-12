@@ -1,5 +1,5 @@
 // 만든 사람 검수: 장부 항목마다 승인·수정·삭제·등급 조정·근원 확정(키보드), 직접 대조로 장부에 없는 오류 추가, 확정.
-// 키: Y 승인 · D 삭제 · 1/2/3 등급 A/B/C · O 근원 확정 · J/K 다음/이전 · N 고른 단위로 항목 추가 · Tab 직접 대조로
+// 키: Y 승인 · D 삭제 · 1/2/3 등급 A/B/C · O 근원 확정 · J/K 다음/이전 · Tab 직접 대조로(화면에는 뜻이 적힌 버튼을 먼저 둔다)
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { api, reviewCode, modelName } from '../api.js';
 import { SourcePanel, StageBlock, PATTERNS } from '../ui/work.jsx';
@@ -20,24 +20,47 @@ export default function Review({ runId }) {
   if (runId) return <ReviewRun runId={runId} />;
   if (error) return <main><p className="error">{error}</p><CodeGate onSet={(v) => { reviewCode.set(v); setCode(v); setError(''); }} /></main>;
   if (!q) return <main><p className="muted">대기열을 불러오는 중…</p></main>;
+  const runs = q.runs.filter((r) => r.role !== 'baseline');
+  const open = q.objections.filter((o) => o.status === 'open');
+  const decided = q.objections.filter((o) => o.status !== 'open');
+  const reviewedRun = new Set(q.runs.filter((r) => r.versions.some((v) => v.status === 'reviewed')).map((r) => r.runId));
   return (
-    <main>
+    <main className="review">
       <h1>검수 대기열</h1>
-      <table className="inbox-table">
-        <thead><tr><th>판</th><th>미션·지시</th><th>작업 모델</th><th>장부 판</th><th>내 풀이</th><th></th></tr></thead>
-        <tbody>
-          {q.runs.filter((r) => r.role !== 'baseline').map((r) => (
-            <tr key={r.runId}>
-              <td className="mono">{r.runId}</td><td>{r.missionId} · {r.style}</td><td>{modelName(r.worker)}</td>
-              <td>{r.versions.map((v) => `${v.version}판(${v.status === 'reviewed' ? '검수' : 'AI'}, ${v.items})`).join(' → ')}{r.draft ? ' · 초안 있음' : ''}</td>
-              <td>{r.makerSolved ? '풀었음' : <a href={`#/r/${r.runId}`}>먼저 풀기</a>}</td>
-              <td>{r.makerSolved ? <a className="btn" href={`#/review/${r.runId}`}>검수</a> : <a className="small" href={`#/review/${r.runId}?force=1`}>풀지 않고 열기</a>}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <h2>이의 제기 {q.objections.filter((o) => o.status === 'open').length}건 대기</h2>
-      <ul>{q.objections.map((o) => <li key={o.id}><span className="mono">{o.id}</span> {o.status} · {o.runId} · {o.kind === 'missing' ? '장부에 없는 오류' : '오류가 아님'} {o.uid} — {o.reason} {o.status === 'open' && <a href={`#/review/${o.runId}`}>판정하러</a>}</li>)}</ul>
+      <h2>장부 검수 {runs.length}판</h2>
+      <ul className="queue-list">
+        {runs.map((r) => {
+          const p = r.progress;
+          const last = r.versions.at(-1);
+          return (
+            <li key={r.runId} className="sheet queue-card">
+              <p className="li-head"><b>{r.missionId} · {modelName(r.worker)} 판</b> <span className="mono small muted">{r.runId}</span></p>
+              <p className="small">장부 {last ? `${last.version}판(${last.status === 'reviewed' ? '사람 검수 완료' : 'AI 감사, 사람 확인 전'}, 항목 ${last.items}개)` : '없음'}</p>
+              {p && (
+                <>
+                  <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={p.of} aria-valuenow={p.done} aria-label="검수 진행"><span style={{ width: `${p.of ? (100 * p.done) / p.of : 0}%` }} /></div>
+                  <p className="small">판정 {p.done}/{p.of}{p.left.length ? ` · 남은 항목 ${p.left.join(', ')}` : ' · 모두 판정함, 확정만 남음'}</p>
+                </>
+              )}
+              <p className="row-btns">
+                {r.makerSolved
+                  ? <a className="btn btn-primary" href={`#/review/${r.runId}`}>{p ? (p.left.length ? '이어서 검수' : '확정하러 가기') : '검수 시작'}</a>
+                  : <><a className="btn btn-primary" href={`#/r/${r.runId}`}>먼저 정답 없이 풀기</a> <a className="small" href={`#/review/${r.runId}?force=1`}>풀지 않고 열기</a></>}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+
+      <h2>이의·자동 판정 {open.length}건 대기</h2>
+      <p className="small muted">사용자가 건 이의와, AI 1차 판정이 「장부에 없는 오류 후보」로 넣은 것을 한곳에서 판정합니다. 받아들이면 장부 새 판이 생기고 그 판을 푼 사람의 결과가 다시 계산됩니다.</p>
+      {!open.length && <p className="small">대기 중인 것이 없습니다.</p>}
+      {open.map((o) => <ObjectionJudge key={o.id} o={o} canAccept={reviewedRun.has(o.runId) || String(o.runId).startsWith('live-')} onDone={() => api.reviewQueue().then(setQ)} />)}
+      {decided.length > 0 && (
+        <details className="small"><summary>판정한 것 {decided.length}건</summary>
+          <ul>{decided.map((o) => <li key={o.id}>{o.source === 'auto' ? 'AI 1차 판정 후보' : '사용자 이의'} · {o.runId} {o.uid} · {o.status === 'accepted' ? `받아들임(장부 ${o.newVersion}판)` : '받아들이지 않음'} — {o.decisionNote || '이유 없음'}</li>)}</ul>
+        </details>
+      )}
     </main>
   );
 }
@@ -63,9 +86,18 @@ function ReviewRun({ runId }) {
   useEffect(() => { load(); }, [load]);
 
   const items = d?.draft.items ?? [];
+  const [skipped, setSkipped] = useState(() => { try { return JSON.parse(localStorage.getItem(`redline:reviewSkip:${runId}`) || '[]'); } catch { return []; } });
+  const skip = (uid) => { const n = [...new Set([...skipped, uid])]; setSkipped(n); try { localStorage.setItem(`redline:reviewSkip:${runId}`, JSON.stringify(n)); } catch { /* 저장 못 해도 화면에서는 숨김 */ } };
+  const [started, setStarted] = useState(false);
   // 순서: 두 감사 일치 → 한쪽만 → 사람 추가. 검수 화면은 등급 A부터
   const order = useMemo(() => [...items].sort((a, b) => (a.source === 'both' ? 0 : 1) - (b.source === 'both' ? 0 : 1) || (a.grade ?? 'Z').localeCompare(b.grade ?? 'Z')), [items]);
   const it = order[cur];
+  // 처음 열 때는 아직 판정하지 않은 첫 항목부터
+  useEffect(() => {
+    if (started || !order.length) return;
+    const i = order.findIndex((x) => x.review === 'pending');
+    setCur(i >= 0 ? i : 0); setStarted(true);
+  }, [order, started]);
   const next = () => setCur((c) => Math.min(c + 1, order.length - 1));
   const myMarks = d?.makerMarks ?? [];
   const myMarksOf = (x) => myMarks.filter((m) => [x.origin, ...(x.spread ?? [])].includes(m.uid));
@@ -107,9 +139,10 @@ function ReviewRun({ runId }) {
 
   return (
     <main className="review">
-      <p className="band">{runId} · {modelName(run.worker)} · 장부 초안(바탕 {draft.base}판) · 항목 {items.length}(두 감사 일치 {items.filter((x) => x.source === 'both').length} · 한쪽만 {items.filter((x) => x.source === 'one').length} · 사람 {items.filter((x) => x.source === 'human' || x.source === 'objection').length}) · 코드만 후보 {draft.codeOnly?.length ?? 0} · 진행 {done}/{items.length}
-        {' '}<button className="btn" onClick={() => setMode(mode === 'items' ? 'direct' : 'items')}>{mode === 'items' ? '직접 대조로(Tab)' : '항목 검수로(Tab)'}</button>
-        {' '}<button className="btn btn-primary" onClick={finalize} disabled={done < items.filter((x) => x.grade).length}>확정(새 판)</button></p>
+      <p className="band">{runId} · {modelName(run.worker)} · 장부 초안(바탕 {draft.base}판) · 항목 {items.length}(두 감사 일치 {items.filter((x) => x.source === 'both').length} · 한쪽만 {items.filter((x) => x.source === 'one').length} · 사람 {items.filter((x) => x.source === 'human' || x.source === 'objection').length}) · 코드만 후보 {draft.codeOnly?.length ?? 0} · 판정 {done}/{items.length}{d.progress?.left?.length ? ` (남은 항목 ${d.progress.left.join(', ')})` : ''}
+        {' '}<button className="btn" onClick={() => setMode(mode === 'items' ? 'direct' : 'items')}>{mode === 'items' ? '장부가 놓친 오류 찾기(직접 대조) Tab' : '장부 항목 판정으로 돌아가기 Tab'}</button>
+        {' '}<button className="btn btn-primary" onClick={finalize} disabled={done < items.filter((x) => x.grade).length}>검수 끝, 장부 확정(새 판)</button></p>
+        <p className="small"><a href="#/review">← 대기열</a></p>
       {error && <p className="error">{error}</p>}
       <p className="small muted">항목마다 「이건 오류인가요?」에 답하면 다음 항목으로 넘어갑니다. 키보드로도 됩니다: 1·2·3·D 답하기, O 처음 생긴 곳 맞음, J/K 다음/이전, Tab 직접 대조(장부가 놓친 오류 추가). 모두 답하면 「확정」을 누르세요.</p>
       <div className="review-grid">
@@ -166,9 +199,10 @@ function ReviewRun({ runId }) {
                 </>
               )}
 
+              {!it.deleted && <SpreadPick it={it} split={d.auditSpread?.[it.id]} busy={busy} onSave={(spread, why) => op({ action: 'edit', item: it.id, spread, note: why })} />}
+
               <label className="small">메모(선택, 판단 이유)<textarea className="note-box" rows={2} value={note} onChange={(e) => setNote(e.target.value)} /></label>
               <details className="small rv-more"><summary>자세히: 감사별 원문 · 코드 대조 · 번진 곳 · 패턴 고치기</summary>
-                <p>번진 곳(이 오류가 옮겨진 뒤 단계 칸): {it.spread?.length ? it.spread.join(', ') : '없음'}</p>
                 {Object.entries(it.byAudit ?? {}).map(([c, x]) => (
                   <p key={c}><b>{c}({modelName(x.model)}) {x.grade}</b> 근원 {x.origin}: {x.why} <span className="muted">코드: 구절 {x.code?.wrongInUnit ? '○' : '×'} · 근거 {x.code?.evidence?.filter((e) => e.found).length ?? 0}/{x.code?.evidence?.length ?? 0}{x.code?.numNotInSource?.length ? ` · 원자료에 없는 숫자 ${x.code.numNotInSource.join(',')}` : ''}</span></p>
                 ))}
@@ -182,22 +216,25 @@ function ReviewRun({ runId }) {
             </section>
             );
           })()}
+          {mode === 'direct' && extraMine.filter((m) => !skipped.includes(m.uid)).map((m) => (
+            <MineCard key={m.uid} m={m} text={run.stages.flatMap((st) => st.units).find((u) => u.uid === m.uid)?.text ?? ''} triage={d.makerTriage?.judgments?.find((j) => j.uid === m.uid)} busy={busy}
+              onAdd={(grade) => op({ action: 'add', origin: m.uid, grade, pattern: m.pattern || '기타', why: m.note || '(풀 때 메모 없음)', wrongText: m.quote || '', originConfirmed: !!m.origin, note: '풀이 때 그은 빨간 줄에서 추가' })}
+              onSkip={() => skip(m.uid)} />
+          ))}
           {mode === 'items' && cur === order.length - 1 && extraMine.length > 0 && (
-            <section className="sheet review-item">
-              <h3 className="rv-q">미영이 풀 때 그었는데 장부에 없는 빨간 줄 {extraMine.length}개</h3>
-              <p className="small muted">장부 항목 어디에도 걸치지 않은 칸입니다. 오류가 맞으면 장부에 추가하세요(「직접 대조」 화면에서 그 칸을 눌러 추가).</p>
-              <ul className="small">{extraMine.map((m) => <li key={m.uid}><b>{m.uid}</b> {m.note || '(메모 없음)'}</li>)}</ul>
-            </section>
+            <p className="small notice">풀 때 그었는데 장부에 없는 빨간 줄이 {extraMine.length}개 있습니다. 「장부가 놓친 오류 찾기」에서 한 번 눌러 추가할 수 있습니다.</p>
           )}
           {mode === 'direct' && (
             <section className="sheet">
-              <p><b>직접 대조</b>: 원자료와 단계별 산출물을 나란히 보고, 장부에 없는 오류가 있는 단위를 눌러 추가합니다. 노랑·빨강은 이미 장부에 있는 단위입니다.</p>
+              <h3 className="rv-q">장부가 놓친 오류가 있나요?</h3>
+              <p className="small">위 카드는 풀 때 그었는데 장부에 없는 빨간 줄입니다. 아래 작업 기록에서 다른 칸을 눌러도 추가할 수 있습니다. 노랑·빨강 칸은 이미 장부에 있습니다.</p>
               {draft.codeOnly?.length > 0 && <p className="small">코드만 찾은 후보: {draft.codeOnly.map((c) => `${c.uid}(${[...c.missing, ...(c.dday ?? []).map((x) => `남은 날 ${x.stated}≠${x.fromToday}/${x.fromPost}`)].join(', ')})`).join(' · ')}</p>}
-              {pickUid && <AddItem uid={pickUid} onAdd={(f) => op({ action: 'add', origin: pickUid, ...f }).then(() => setPickUid(null))} onClose={() => setPickUid(null)} />}
+              {pickUid && <AddItem uid={pickUid} text={run.stages.flatMap((st) => st.units).find((u) => u.uid === pickUid)?.text ?? ''} onAdd={(f) => op({ action: 'add', origin: pickUid, ...f }).then(() => setPickUid(null))} onClose={() => setPickUid(null)} />}
             </section>
           )}
-          {(d.objections ?? []).filter((o) => o.status === 'open').map((o) => <ObjectionJudge key={o.id} o={o} items={items} onDone={load} />)}
-          <div className="work-main">{run.stages.map((s) => <StageBlock key={s.key} stage={s} review={review} marks={Object.fromEntries(hlUnits.map((u) => [u, {}]))} onPick={mode === 'direct' ? setPickUid : undefined} />)}</div>
+          {(d.objections ?? []).filter((o) => o.status === 'open').map((o) => <ObjectionJudge key={o.id} o={o} canAccept={d.versions.some((v) => v.status === 'reviewed') || run.origin === 'live'} onDone={load} />)}
+          <p className="small muted">작업 기록은 최종본부터 보여 드립니다.</p>
+          <div className="work-main">{[...run.stages].reverse().map((s) => <StageBlock key={s.key} stage={s} review={review} marks={Object.fromEntries(hlUnits.map((u) => [u, {}]))} onPick={mode === 'direct' ? setPickUid : undefined} />)}</div>
         </div>
       </div>
     </main>
@@ -225,42 +262,105 @@ function EditFields({ it, onSave }) {
   );
 }
 
-function AddItem({ uid, onAdd, onClose }) {
-  const [grade, setGrade] = useState('A');
-  const [pattern, setPattern] = useState(PATTERNS[0]);
+function AddItem({ uid, text, onAdd, onClose }) {
+  const [pattern, setPattern] = useState('기타');
   const [why, setWhy] = useState('');
   const [wrongText, setWrong] = useState('');
   const [ev, setEv] = useState('');
+  const add = (grade) => onAdd({ grade, pattern, why, wrongText, originConfirmed: true, evidence: ev.split(/[\s,]+/).filter(Boolean).map((ref) => ({ ref, quote: '' })) });
   return (
-    <div className="mark-editor" role="dialog" aria-label="항목 추가">
-      <p><b>{uid}</b>에 항목 추가</p>
-      <label className="small">등급<select value={grade} onChange={(e) => setGrade(e.target.value)}><option>A</option><option>B</option><option>C</option></select></label>
-      <label className="small">패턴<select value={pattern} onChange={(e) => setPattern(e.target.value)}>{PATTERNS.map((p) => <option key={p}>{p}</option>)}</select></label>
-      <label className="small">틀린 구절<input value={wrongText} onChange={(e) => setWrong(e.target.value)} /></label>
-      <label className="small">근거 문단(예: A-p3)<input value={ev} onChange={(e) => setEv(e.target.value)} /></label>
-      <label className="small">이유<textarea rows={2} value={why} onChange={(e) => setWhy(e.target.value)} /></label>
-      <div className="row-btns"><button className="btn btn-primary" disabled={!why.trim()} onClick={() => onAdd({ grade, pattern, why, wrongText, originConfirmed: true, evidence: ev.split(/[\s,]+/).filter(Boolean).map((ref) => ({ ref, quote: '' })) })}>추가</button><button className="btn" onClick={onClose}>닫기</button></div>
+    <div className="mark-editor" role="dialog" aria-label={`${uid} 장부에 추가`}>
+      <p className="small"><b>{uid}</b> {text}</p>
+      <label className="small">무엇이 틀렸나요?(필수, 한 문장)<textarea rows={2} value={why} onChange={(e) => setWhy(e.target.value)} placeholder="예: 원자료 D-p3은 「관심 있는 대학생」인데 3·4학년 모두에게 권함" /></label>
+      <label className="small">틀린 구절(선택)<input value={wrongText} onChange={(e) => setWrong(e.target.value)} /></label>
+      <label className="small">근거 원자료 문단(선택, 예: A-p3)<input value={ev} onChange={(e) => setEv(e.target.value)} /></label>
+      <label className="small">패턴(모르면 기타)<select value={pattern} onChange={(e) => setPattern(e.target.value)}>{PATTERNS.map((p) => <option key={p}>{p}</option>)}</select></label>
+      <p className="rv-q small">어느 등급으로 추가할까요?</p>
+      <div className="rv-choices">
+        {GRADES.map((g) => <button key={g.k} className="btn rv-choice" disabled={!why.trim()} onClick={() => add(g.k)}><b>{g.label}로 추가</b><span>{g.desc}</span></button>)}
+        <button className="btn rv-choice" onClick={onClose}><b>닫기</b><span>추가하지 않음</span></button>
+      </div>
     </div>
   );
 }
 
-function ObjectionJudge({ o, items, onDone }) {
+/** 풀 때 그었는데 장부에 없는 빨간 줄: 한 번 눌러 장부에 추가 */
+function MineCard({ m, text, triage, busy, onAdd, onSkip }) {
+  const q = m.quote && text.includes(m.quote) ? m.quote : '';
+  return (
+    <section className="sheet review-item mine-card">
+      <p className="li-head"><b>풀 때 그은 빨간 줄 {m.uid}</b>{m.origin ? ' · 처음 생긴 곳으로 표시함' : ''}{m.pattern ? ` · ${m.pattern}` : ''}</p>
+      <blockquote className="rv-unit">{q ? <>{text.slice(0, text.indexOf(q))}<mark className="rv-wrong">{q}</mark>{text.slice(text.indexOf(q) + q.length)}</> : text}</blockquote>
+      <p className="small"><b>그때 메모:</b> {m.note || '(메모 없음)'}</p>
+      {triage && <p className="small muted">AI 1차 판정(사람 확인 전): {VERDICT_KO[triage.verdict]} — {triage.why}</p>}
+      <h3 className="rv-q">이 칸은 장부에 없는 오류인가요?</h3>
+      <div className="rv-choices">
+        {GRADES.map((g) => <button key={g.k} className="btn rv-choice" disabled={busy} onClick={() => onAdd(g.k)}><b>{g.label}로 추가</b><span>{g.desc}</span></button>)}
+        <button className="btn rv-choice" disabled={busy} onClick={onSkip}><b>오류 아님 · 넘기기</b><span>장부에 넣지 않음(이 브라우저에서 숨김)</span></button>
+      </div>
+    </section>
+  );
+}
+export const VERDICT_KO = { grounded: '원자료 근거가 있는 지적', ungrounded: '원자료에서 근거를 찾지 못함', unclear: '판단이 어려움', same: '장부의 이유와 같은 문제', different: '장부의 이유와 다른 문제' };
+
+/** 번진 곳: 두 감사가 함께 댄 칸과 한 감사만 댄 칸을 나눠 보이고, 한 번 눌러 줄이거나 더한다 */
+function SpreadPick({ it, split, busy, onSave }) {
+  const spread = it.spread ?? [];
+  const both = split?.both ?? [];
+  const one = (split?.one ?? []).filter((u) => spread.includes(u));
+  const cand = [...new Set([...(it.spreadCandidates ?? []), ...(split?.one ?? [])])].filter((u) => !spread.includes(u));
+  const origins = [...new Set(Object.values(it.byAudit ?? {}).map((b) => b.origin).filter(Boolean))];
+  return (
+    <div className="spread-pick small">
+      <h3 className="rv-q">이 오류가 옮겨진 칸은 어디인가요? <span className="muted">(여기 그은 빨간 줄도 이 오류를 찾은 것으로 셉니다)</span></h3>
+      {origins.length > 1 && <p className="notice">두 감사가 짚은 처음 생긴 곳이 다릅니다({origins.join(' / ')}). 서로 다른 오류가 하나로 묶였을 수 있으니 아래 「자세히」의 감사별 이유를 견줘 보세요.</p>}
+      <p>지금 장부: {spread.length ? spread.join(', ') : '없음'} ({spread.length}칸)</p>
+      {split && <p className="muted">그중 두 감사가 함께 댄 칸 {spread.filter((u) => both.includes(u)).length}개{one.length ? ` · 한 감사만 댄 칸 ${one.length}개(${one.join(', ')})` : ''}</p>}
+      <div className="row-btns">
+        {one.length > 0 && <button className="btn" disabled={busy} onClick={() => onSave(spread.filter((u) => !one.includes(u)), '번진 곳을 두 감사가 함께 댄 칸만 남김')}>두 감사가 함께 댄 칸만 남기기</button>}
+        {spread.length > 0 && <button className="btn" disabled={busy} onClick={() => onSave([], '번진 곳 없음(처음 생긴 곳만)')}>옮겨진 칸 없음</button>}
+      </div>
+      {cand.length > 0 && <p>더할 수 있는 칸(한 감사만 댐): {cand.map((u) => <button key={u} className="btn small" disabled={busy} onClick={() => onSave([...spread, u], `번진 곳에 ${u} 더함`)}>+ {u}</button>)}</p>}
+    </div>
+  );
+}
+
+function ObjectionJudge({ o, canAccept = true, onDone }) {
   const [note, setNote] = useState('');
-  const [grade, setGrade] = useState('A');
-  const [pattern, setPattern] = useState(PATTERNS[0]);
+  const [pattern, setPattern] = useState('기타');
   const [msg, setMsg] = useState('');
-  const decide = async (accept) => {
-    const op = !accept ? null : o.kind === 'notError' ? { action: 'delete', item: o.item } : { action: 'add', origin: o.uid, grade, pattern, why: o.reason, originConfirmed: false, evidence: (o.evidence ?? []).map((ref) => ({ ref, quote: '' })) };
-    try { const r = await api.reviewObjection(o.id, accept, note, op); setMsg(accept ? `받아들임 → 장부 ${r.newVersion}판` : '받아들이지 않음'); onDone(); } catch (e) { setMsg(e.message); }
+  const auto = o.source === 'auto';
+  const decide = async (accept, grade = 'A') => {
+    const op = !accept ? null : o.kind === 'notError' ? { action: 'delete', item: o.item } : { action: 'add', origin: o.uid, grade, pattern, why: (o.triage?.note || o.reason).slice(0, 300), originConfirmed: false, evidence: (o.evidence ?? []).map((ref) => ({ ref, quote: o.triage?.evidence?.find((e) => e.ref === ref)?.quote ?? '' })) };
+    try { const r = await api.reviewObjection(o.id, accept, note, op); setMsg(r.live ? '판정을 남겼습니다(팀장 모드 장부는 채점에 쓰지 않아 새 판은 만들지 않습니다)' : accept ? `받아들임 → 장부 ${r.newVersion}판` : '받아들이지 않음'); onDone?.(); } catch (e) { setMsg(e.message); }
   };
   return (
     <section className="sheet objection">
-      <p><b>이의 {o.id}</b> · {o.kind === 'missing' ? '장부에 없는 오류' : `오류가 아님(${o.item})`} · 단위 {o.uid} · 근거 {(o.evidence ?? []).join(', ') || '—'}</p>
-      <p>{o.reason}</p>
-      {o.kind === 'missing' && <p className="small">받아들이면 추가할 항목: <select value={grade} onChange={(e) => setGrade(e.target.value)}><option>A</option><option>B</option><option>C</option></select> <select value={pattern} onChange={(e) => setPattern(e.target.value)}>{PATTERNS.map((p) => <option key={p}>{p}</option>)}</select></p>}
-      <label className="small">판정 이유<input value={note} onChange={(e) => setNote(e.target.value)} /></label>
-      <div className="row-btns"><button className="btn btn-primary" onClick={() => decide(true)} disabled={!note.trim()}>받아들임</button><button className="btn" onClick={() => decide(false)} disabled={!note.trim()}>받아들이지 않음</button></div>
-      {msg && <p className="small">{msg}</p>}
+      <p className="li-head"><span className={`tag ${auto ? '' : 'tag-red'}`}>{auto ? 'AI 1차 판정 후보' : '사용자 이의'}</span> <b>{o.missionId ? `${o.missionId} · ` : ''}{o.uid}</b> <span className="mono small muted">{o.runId}</span></p>
+      {o.unitText && <blockquote className="rv-unit">{o.unitText}</blockquote>}
+      <p className="small"><b>{auto ? 'AI가 본 근거' : '이의 이유'}:</b> {o.reason}</p>
+      {(o.triage?.evidence ?? []).filter((e) => e.found).map((e, i) => <p key={i} className="small muted">원자료 <b>{e.ref}</b> 「{e.quote}」</p>)}
+      {!o.triage && (o.evidence ?? []).length > 0 && <p className="small muted">근거로 든 문단: {o.evidence.join(', ')}</p>}
+      {o.itemsAt?.length > 0 && <p className="small muted">이 칸에 걸친 장부 항목: {o.itemsAt.map((x) => `${x.id}(${x.grade}, ${x.pattern})`).join(', ')}</p>}
+      {msg ? <p className="small">{msg}</p> : !canAccept ? <p className="small notice">이 판은 장부를 먼저 검수해 확정해야 판정할 수 있습니다(받아들이면 확정 장부에 새 판을 만듭니다).</p> : o.kind === 'missing' ? (
+        <>
+          <h3 className="rv-q">이 칸은 장부에 없는 오류인가요?</h3>
+          <label className="small">패턴(모르면 기타) <select value={pattern} onChange={(e) => setPattern(e.target.value)}>{PATTERNS.map((p) => <option key={p}>{p}</option>)}</select></label>
+          <div className="rv-choices">
+            {GRADES.map((g) => <button key={g.k} className="btn rv-choice" onClick={() => decide(true, g.k)}><b>네, {g.label}</b><span>장부에 추가하고 새 판을 만듭니다</span></button>)}
+            <button className="btn rv-choice" onClick={() => decide(false)}><b>아니요</b><span>장부를 그대로 둡니다</span></button>
+          </div>
+        </>
+      ) : (
+        <>
+          <h3 className="rv-q">장부 항목 {o.item}은 오류가 아닌가요?</h3>
+          <div className="rv-choices">
+            <button className="btn rv-choice" onClick={() => decide(true)}><b>네, 오류가 아님</b><span>장부에서 빼고 새 판을 만듭니다</span></button>
+            <button className="btn rv-choice" onClick={() => decide(false)}><b>아니요, 오류가 맞음</b><span>장부를 그대로 둡니다</span></button>
+          </div>
+        </>
+      )}
+      {!msg && canAccept && <label className="small">판정 이유(선택, 공개 수치와 이력에 남음)<input value={note} onChange={(e) => setNote(e.target.value)} /></label>}
     </section>
   );
 }

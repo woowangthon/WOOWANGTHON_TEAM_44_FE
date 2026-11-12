@@ -504,3 +504,19 @@ main, .sheet, .band { overflow-wrap: anywhere; }
 /* 구절에만 긋는 빨간 줄 */
 .phrase-mark { text-decoration: underline wavy var(--red); text-underline-offset: 4px; text-decoration-thickness: 1.5px; background: rgba(200, 16, 46, 0.07); }
 .rv-choice.on, .rv-choice.on b { color: var(--ink); }
+
+/* 11/13 검수 대기열·카드 */
+.queue-list { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 10px; }
+.queue-card { padding: 12px 16px; }
+.queue-card p { margin: 4px 0; }
+.progress { height: 8px; background: var(--rule); border-radius: 4px; overflow: hidden; margin: 6px 0 2px; max-width: 420px; }
+.progress span { display: block; height: 100%; background: var(--ok); }
+.spread-pick { margin: 12px 0; padding: 8px 12px; background: var(--paper-2); border-radius: var(--radius); }
+.spread-pick p { margin: 4px 0; }
+.spread-pick .btn.small { margin: 2px 4px 2px 0; }
+.mine-card { border-left: 4px solid var(--red); }
+.triage { margin: 14px 0; padding: 10px 14px; border: 1px dashed var(--ink-3); background: #fff; }
+.triage li { margin: 6px 0; }
+.learned { margin: 12px 0 16px; padding: 12px 16px; background: var(--ok-bg); border-left: 4px solid var(--ok); }
+.learned ul { margin: 6px 0 0; padding-left: 1.2em; }
+.learned li { margin: 4px 0; }
