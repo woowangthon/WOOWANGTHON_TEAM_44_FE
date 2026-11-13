@@ -54,7 +54,7 @@ export default function Lead({ missionId }) {
       <main className="lead">
         <h1>{m.title} · 맡기기</h1>
         <p className="brief">{m.brief}</p>
-        <p className="small">1) 일을 단계로 나누고 단계마다 무엇을 넘길지 고릅니다. 2) 단계마다 지시를 씁니다. 3) AI 동료가 실제로 일하면 결과를 원자료와 대조해 승인하거나 반려합니다(단계마다 재작업 1번). 4) 최종본에 서명하면 작업 기록을 처음 보는 다른 회사 모델 두 개가 감사합니다.</p>
+        <p className="small">1) 일을 단계로 나누고 단계마다 무엇을 넘길지 고릅니다. 2) 단계마다 지시를 씁니다. 3) AI 동료가 실제로 일하면 결과를 원자료와 대조해 승인하거나 반려합니다(단계마다 재작업 1번). 4) 최종본에 서명하면 작업 기록을 처음 보는 다른 회사 모델 두 개가 감사합니다. 한 곳이 시간 안에 끝나지 않으면 끝난 감사만 반영하고 그렇게 표시합니다.</p>
         <div className="work-grid">
           <SourceDock onOpen={() => { views.current++; }}>{docs ? <SourcePanel docs={docs} onView={() => { views.current++; }} /> : <p className="muted small">원자료 불러오는 중…</p>}</SourceDock>
           <div>

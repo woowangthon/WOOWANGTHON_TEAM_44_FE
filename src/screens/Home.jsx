@@ -20,7 +20,7 @@ export default function Home() {
         <div>
           <p className="eyebrow">AI 활용 평가가 있는 채용을 앞둔 대학생을 위해</p>
           <h1>AI에게 일을 맡기고, 틀린 곳을 잡고, 책임지고 내보내는 연습</h1>
-          <p className="hero-lead">AI 동료(실제 모델)가 공공 보도자료로 여러 단계 업무를 처리합니다. 오류를 일부러 심지 않습니다. 단계를 넘기며 저절로 생긴 오류를, 작업 기록을 처음 보는 다른 회사 모델 두 개가 감사하고 사람이 검수해 정답표를 만듭니다.</p>
+          <p className="hero-lead">AI 동료(실제 모델)가 공공 보도자료로 여러 단계 업무를 처리합니다. 오류를 일부러 심지 않습니다. 단계를 넘기며 저절로 생긴 오류를, 작업 기록을 처음 보는 감사 모델(검수해 보기 판은 세 회사, 팀장 모드는 작업 회사를 뺀 두 회사)이 감사하고, 사람이 검수해 정답표를 만듭니다.</p>
           <p className="small muted loop-title">연습하는 고리(Anthropic의 AI 활용 4D 역량을 따름)</p>
           <ol className="loop">{LOOP.map(([k, e]) => <li key={k}><b>{k}</b>{e && <span>{e}</span>}</li>)}</ol>
           <p className="small terms"><b>사수 모드</b> AI 동료가 이미 끝낸 일을 검수합니다 · <b>팀장 모드</b> 내가 일을 나누고 지시해 맡깁니다 · <b>판</b> 한 번 돌린 작업 기록 · <b>장부</b> 그 판의 오류 정답표</p>
@@ -56,7 +56,7 @@ export default function Home() {
             </div>
             <div>
               <h3>맡겨 보기 <span className="muted small">팀장 모드</span></h3>
-              <p className="small">단계를 나누고 지시를 써서 AI 동료에게 직접 맡깁니다. 끝나면 다른 회사 두 감사가 장부를 만듭니다(사람 확인 전).</p>
+              <p className="small">단계를 나누고 지시를 써서 AI 동료에게 직접 맡깁니다. 끝나면 작업 회사를 뺀 두 회사가 감사해 장부를 만듭니다(사람 확인 전). 한 곳이 시간 안에 끝나지 않으면 끝난 감사만 반영합니다.</p>
               <a className="btn" href={`#/lead/${m.id}`}>이 미션 맡기기</a>
               {Object.keys(m.baseline ?? {}).length > 0 && <p className="small muted">기준: {Object.entries(m.baseline).map(([s, b]) => `${STYLE_KO[s] ?? s} ${b.n}판 평균 최종본 A ${b.meanAfinal}개`).join(' · ')} (AI 감사 기준)</p>}
             </div>
