@@ -409,6 +409,8 @@ button.line:hover { background: var(--paper-2); }
 .rv-missA { background: var(--red-bg); outline: 1.5px solid var(--red); } .unit-row.rv-missA td { background: var(--red-bg); }
 .rv-bc { background: #fff6d6; } .unit-row.rv-bc td { background: #fff6d6; }
 .rv-false { background: #ececec; } .unit-row.rv-false td { background: #ececec; }
+.rv-split { background: #e2f0fb; outline: 1.5px dashed #5b8db8; } .unit-row.rv-split td { background: #e2f0fb; }
+.tag-split { background: #e2f0fb; color: #1f4e79; border-color: #5b8db8; }
 .unit-note { font-family: var(--pen); color: var(--red); font-size: 1.15rem; margin-left: 6px; }
 .work-table { border-collapse: collapse; width: 100%; font-size: 0.84rem; }
 .work-table th, .work-table td { border: 1px solid var(--line); padding: 4px 6px; vertical-align: top; text-align: left; }

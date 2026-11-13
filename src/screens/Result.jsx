@@ -31,6 +31,9 @@ export default function Result({ run, done }) {
   const review = {};
   for (const p of g.perItem) for (const u of [p.origin, ...p.spread]) review[u] = p.grade === 'A' ? (p.found ? 'foundA' : 'missA') : review[u] ?? 'bc';
   for (const u of g.falseMarks) review[u] = 'false';
+  // 판단이 갈리는 칸: 한 감사만 옮겨졌다고 본 후보 칸에 그은 줄(점수 없음). 서버가 옛 판이면 없을 수 있다
+  const splitMarks = g.splitMarks ?? [];
+  for (const s of splitMarks) review[s.uid] = 'split';
   const items = L.items;
   const A = items.filter((x) => x.grade === 'A');
   const BC = items.filter((x) => x.grade !== 'A');
@@ -54,7 +57,7 @@ export default function Result({ run, done }) {
           <div className="score-box"><b>{g.counts.originable ? `${g.counts.originHits}/${g.counts.originable}` : '—'}</b><span>{g.counts.originable ? '처음 생긴 곳(멈췄어야 할 곳) 짚음' : '처음 생긴 곳: 이 판은 사람이 확정한 항목이 없어 세지 않음'}</span></div>
           <div className="score-box"><b>{done.answer?.sourceViews ?? '—'}</b><span>원자료를 열어 본 횟수</span></div>
         </div>
-        <p className="small muted">점수는 사람이 검수한 장부의 A등급(원자료와 대조하면 누구나 같은 결론이 나는 오류)으로만 매깁니다. B·C는 판단이 갈릴 수 있어 참고로만 보여 드립니다. 기록용 합계 {g.score}점(찾음 50 · 정확도 20 · 결재 20 · 처음 생긴 곳 10).</p><p className="small muted">헛짚음 = 장부에 없는 곳에 그은 빨간 줄입니다.</p>
+        <p className="small muted">점수는 사람이 검수한 장부의 A등급(원자료와 대조하면 누구나 같은 결론이 나는 오류)으로만 매깁니다. B·C는 판단이 갈릴 수 있어 참고로만 보여 드립니다. 기록용 합계 {g.score}점(찾음 50 · 정확도 20 · 결재 20 · 처음 생긴 곳 10).</p><p className="small muted">헛짚음 = 장부에 없는 곳에 그은 빨간 줄입니다.{splitMarks.length ? ' 판단이 갈리는 칸(한 감사만 오류가 옮겨졌다고 본 칸)에 그은 줄은 찾음에도 헛짚음에도 넣지 않습니다.' : ''}</p>
 
         <Learned A={A} perOf={perOf} falseMarks={g.falseMarks} decisionOk={g.decisionOk} shouldReject={g.shouldReject} />
 
@@ -85,14 +88,15 @@ export default function Result({ run, done }) {
             <ul>{BC.map((it) => <li key={it.id}><b>{it.grade}</b> {it.pattern} · {it.origin} 「{it.wrongText}」 — {it.why}</li>)}</ul>
           </details>
         )}
+        {splitMarks.length > 0 && <p className="small"><span className="tag tag-split">판단이 갈리는 칸</span> {splitMarks.map((s) => `${s.uid}(${s.items.join('·')}가 옮겨졌을 수 있는 칸)`).join(', ')}. 감사 하나만 오류가 옮겨졌다고 본 칸이라 점수에 넣지 않았습니다(찾음·헛짚음 모두 아님).</p>}
         {g.falseMarks.length > 0 && <p className="small">장부에 없는 곳에 그은 줄: {g.falseMarks.join(', ')}. 장부와 생각이 다르면 아래 작업 기록에서 그 칸을 눌러 이의를 제기할 수 있습니다.</p>}
         <Triage tri={tri} marks={marks} items={items} />
 
         <h2>작업 기록 다시 보기</h2>
-        <p className="small muted">초록 = 찾은 A, 빨강 = 놓친 A, 노랑 = B·C, 회색 줄 = 헛짚음. 단위를 누르면 이의를 제기할 수 있습니다.</p>
+        <p className="small muted">초록 = 찾은 A, 빨강 = 놓친 A, 노랑 = B·C, 하늘색 = 판단이 갈리는 칸, 회색 줄 = 헛짚음. 단위를 누르면 이의를 제기할 수 있습니다.</p>
         <div className="work-grid">
           <aside className="work-src"><SourcePanel key={focus ?? 'none'} docs={docs} highlight={hl} /></aside>
-          <div className="work-main">{stages.map((s) => <StageBlock key={s.key} stage={s} marks={myMarks} review={review} onPick={(uid) => setOb({ uid, kind: review[uid] && review[uid] !== 'false' ? 'notError' : 'missing' })} />)}</div>
+          <div className="work-main">{stages.map((s) => <StageBlock key={s.key} stage={s} marks={myMarks} review={review} onPick={(uid) => setOb({ uid, kind: review[uid] && review[uid] !== 'false' && review[uid] !== 'split' ? 'notError' : 'missing' })} />)}</div>
         </div>
       </div>
       {ob && <Objection runId={run.meta.runId} answerId={answerId} ob={ob} items={items} onClose={() => setOb(null)} />}
