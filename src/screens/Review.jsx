@@ -2,7 +2,7 @@
 // 키: Y 승인 · D 삭제 · 1/2/3 등급 A/B/C · O 근원 확정 · J/K 다음/이전 · Tab 직접 대조로(화면에는 뜻이 적힌 버튼을 먼저 둔다)
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { api, reviewCode, modelName } from '../api.js';
-import { SourcePanel, StageBlock, PATTERNS } from '../ui/work.jsx';
+import { SourcePanel, SourceDock, StageBlock, PATTERNS } from '../ui/work.jsx';
 
 const STATUS = { pending: '아직 안 봄', approved: '판정함', edited: '판정함(고침)', deleted: '오류 아님으로 뺌', added: '사람이 추가' };
 const GRADES = [
@@ -197,7 +197,7 @@ function ReviewRun({ runId }) {
       {error && <p className="error">{error}</p>}
       <p className="small muted">문장마다 「원자료와 견줘 틀렸나요?」 하나만 답하면 됩니다. 묶인 문장 나누기, 같은 오류 합치기, 오류가 옮겨진 곳 정하기는 코드가 합니다. 키보드: 1·2·3·D 답, J 건너뛰기, K 이전.</p>
       <div className="review-grid">
-        <aside className="work-src"><SourcePanel key={evid.join() || 'x'} docs={docs} highlight={evid} compact /></aside>
+        <SourceDock><SourcePanel key={evid.join() || 'x'} docs={docs} highlight={evid} compact /></SourceDock>
         <div>
           {mode === 'items' && !it && <section className="sheet review-item"><p>남은 질문이 없습니다.</p></section>}
           {mode === 'items' && it && (() => {

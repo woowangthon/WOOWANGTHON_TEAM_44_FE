@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { api, modelName } from '../api.js';
 import { DocHead, LedgerTag, Stamp } from '../ui/doc.jsx';
-import { SourcePanel, StageBlock, useDialog } from '../ui/work.jsx';
+import { SourcePanel, SourceDock, StageBlock, useDialog } from '../ui/work.jsx';
 
 const refs = (it) => [it.origin, ...(it.spread ?? [])];
 
@@ -10,6 +10,7 @@ export default function Result({ run, done }) {
   const { meta, mission, docs, stages } = run;
   const { result: g, ledger: L, before, changed, answerId } = done;
   const [focus, setFocus] = useState(null);
+  const [focusTick, setFocusTick] = useState(0); // 근거 칸을 누를 때마다 휴대폰 폭에서 원자료 서랍을 연다
   const [ob, setOb] = useState(null);
   // AI 1차 판정(표시만, 점수와 무관): 결과를 먼저 보이고 판정은 뒤에서 한 번 부른다. 실패하면 판정 없이 둔다
   const [tri, setTri] = useState(done.triage ?? null);
@@ -69,7 +70,7 @@ export default function Result({ run, done }) {
             return (
               <li key={it.id} className={p?.found ? 'found' : 'missed'}>
                 <p className="li-head">
-                  <span className={`tag ${p?.found ? '' : 'tag-red'}`}>{p?.found ? '찾음' : '놓침'}</span> <b>{it.pattern}</b> · 처음 생긴 곳 <button className="linkish" onClick={() => setFocus(it.id)} aria-label={`${it.origin} 근거 원자료 보기`}>{it.origin}</button>
+                  <span className={`tag ${p?.found ? '' : 'tag-red'}`}>{p?.found ? '찾음' : '놓침'}</span> <b>{it.pattern}</b> · 처음 생긴 곳 <button className="linkish" onClick={() => { setFocus(it.id); setFocusTick((t) => t + 1); }} aria-label={`${it.origin} 근거 원자료 보기`}>{it.origin}</button>
                   {it.spread.length > 0 && <> → 옮겨진 곳 {it.spread.join(' → ')}</>}
                 </p>
                 <p>「{it.wrongText}」 — {it.why}</p>
@@ -95,7 +96,7 @@ export default function Result({ run, done }) {
         <h2>작업 기록 다시 보기</h2>
         <p className="small muted">초록 = 찾은 A, 빨강 = 놓친 A, 노랑 = B·C, 하늘색 = 판단이 갈리는 칸, 회색 줄 = 헛짚음. 단위를 누르면 이의를 제기할 수 있습니다.</p>
         <div className="work-grid">
-          <aside className="work-src"><SourcePanel key={focus ?? 'none'} docs={docs} highlight={hl} /></aside>
+          <SourceDock openKey={focusTick}><SourcePanel key={focus ?? 'none'} docs={docs} highlight={hl} /></SourceDock>
           <div className="work-main">{stages.map((s) => <StageBlock key={s.key} stage={s} marks={myMarks} review={review} onPick={(uid) => setOb({ uid, kind: review[uid] && review[uid] !== 'false' && review[uid] !== 'split' ? 'notError' : 'missing' })} />)}</div>
         </div>
       </div>

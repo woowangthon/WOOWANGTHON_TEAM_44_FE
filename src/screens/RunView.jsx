@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, myAnswers, isMaker, modelName, fmtDate } from '../api.js';
 import { DocHead, LedgerTag } from '../ui/doc.jsx';
-import { SourcePanel, StageBlock, MarkEditor } from '../ui/work.jsx';
+import { SourcePanel, SourceDock, StageBlock, MarkEditor } from '../ui/work.jsx';
 import Result from './Result.jsx';
 
 // 풀던 상태(빨간 줄·결재·시작 시각)를 이 기기에 임시로 둔다. 새로고침해도 이어서 풀 수 있게. 제출하면 지운다.
@@ -77,7 +77,7 @@ export default function RunView({ id }) {
           틀린 곳이 없을 수도 있습니다. 앞 단계를 펼쳐 오류가 처음 생긴 곳을 짚으면 「멈췄어야 할 곳」을 맞힌 것입니다.
         </p>
         <div className="work-grid">
-          <aside className="work-src"><SourcePanel docs={docs} onView={() => { views.current++; bump((x) => x + 1); }} /></aside>
+          <SourceDock onOpen={() => { views.current++; bump((x) => x + 1); }}><SourcePanel docs={docs} onView={() => { views.current++; bump((x) => x + 1); }} /></SourceDock>
           <div className="work-main">
             {/* 최종본(마지막 두 단계)부터 읽고, 이상한 곳이 있을 때만 앞 단계를 펼쳐 거슬러 올라간다. 팀장이 결과를 검토하는 순서와 같다 */}
             {(() => {

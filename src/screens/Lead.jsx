@@ -2,7 +2,7 @@
 // 결과는 「AI 감사(두 회사) · 사람 확인 전」이고 점수가 아니라 결과 지표만 보여 준다.
 import { useEffect, useRef, useState } from 'react';
 import { api, modelName } from '../api.js';
-import { SourcePanel, StageBlock, inputsKo } from '../ui/work.jsx';
+import { SourcePanel, SourceDock, StageBlock, inputsKo } from '../ui/work.jsx';
 import { Objection } from './Result.jsx';
 
 const KIND_KO = { list: '목록', table: '표', sentences: '문장', report: '보고', lines: '짧은 줄', check: '확인(원자료 대조)' };
@@ -56,7 +56,7 @@ export default function Lead({ missionId }) {
         <p className="brief">{m.brief}</p>
         <p className="small">1) 일을 단계로 나누고 단계마다 무엇을 넘길지 고릅니다. 2) 단계마다 지시를 씁니다. 3) AI 동료가 실제로 일하면 결과를 원자료와 대조해 승인하거나 반려합니다(단계마다 재작업 1번). 4) 최종본에 서명하면 작업 기록을 처음 보는 다른 회사 모델 두 개가 감사합니다.</p>
         <div className="work-grid">
-          <aside className="work-src">{docs ? <SourcePanel docs={docs} onView={() => { views.current++; }} /> : <p className="muted small">원자료 불러오는 중…</p>}</aside>
+          <SourceDock onOpen={() => { views.current++; }}>{docs ? <SourcePanel docs={docs} onView={() => { views.current++; }} /> : <p className="muted small">원자료 불러오는 중…</p>}</SourceDock>
           <div>
             {plan.map((p, i) => (
               <section key={i} className="stage plan-block">
@@ -89,7 +89,7 @@ export default function Lead({ missionId }) {
       <p className="band">작업 모델 <b>{modelName(s.worker)}</b>({s.workerCompany}) · 감사 {s.auditors.map(modelName).join(', ')} · {s.label}</p>
       <h1>{m.title}</h1>
       <div className="work-grid">
-        <aside className="work-src">{docs && <SourcePanel docs={docs} onView={() => { views.current++; }} />}</aside>
+        <SourceDock onOpen={() => { views.current++; }}>{docs && <SourcePanel docs={docs} onView={() => { views.current++; }} />}</SourceDock>
         <div>
           {s.stages.map((st) => <StageBlock key={st.key} stage={{ ...st, inputs: s.plan.find((p) => p.key === st.key)?.inputs ?? [], instruction: '' }} />)}
           {s.phase === 'work' && (

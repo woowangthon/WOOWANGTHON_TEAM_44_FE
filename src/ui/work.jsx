@@ -18,6 +18,26 @@ export const PATTERNS = ['한정어·조건 탈락', '근거보다 큰 결론', 
 const INPUT_KO = { sources: '원자료', brief: '팀장 지시' };
 export const inputsKo = (inputs) => inputs.map((x) => INPUT_KO[x] ?? x).join(' · ');
 
+/** 원자료 칸: 넓은 화면은 왼쪽에 붙어 있고, 휴대폰 폭(820px 이하)은 「원자료 보기」로 아래에서 올라오는 서랍이 된다(작업 기록이 먼저 보이게).
+ *  openKey가 바뀌면 연다(결과 화면에서 근거 칸을 눌렀을 때). onOpen은 서랍을 열 때 불린다(원자료 대조 횟수) */
+export function SourceDock({ children, openKey, onOpen }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => { if (openKey) setOpen(true); }, [openKey]);
+  useEffect(() => {
+    if (!open) return;
+    const on = (e) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', on);
+    return () => window.removeEventListener('keydown', on);
+  }, [open]);
+  return (<>
+    <aside id="src-dock" className={`work-src ${open ? 'open' : ''}`}>
+      <div className="src-dock-head"><b>원자료</b><button className="btn" onClick={() => setOpen(false)}>닫기</button></div>
+      {children}
+    </aside>
+    <button className="btn btn-primary src-toggle" aria-expanded={open} aria-controls="src-dock" onClick={() => { if (!open) onOpen?.(); setOpen(!open); }}>원자료 보기</button>
+  </>);
+}
+
 /** 원자료 패널. onView는 문서를 열거나 문단을 누를 때마다 불린다(원자료 대조 횟수) */
 export function SourcePanel({ docs, highlight = [], onView, compact }) {
   const keys = Object.keys(docs);

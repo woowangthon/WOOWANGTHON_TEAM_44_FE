@@ -459,7 +459,6 @@ button.line:hover { background: var(--paper-2); }
 .seg { display: flex; gap: 6px; flex-wrap: wrap; }
 @media (max-width: 820px) {
   .work-grid, .review-grid, .entries, .hero { grid-template-columns: 1fr; }
-  .work-src { position: static; max-height: 45vh; }
   .sheet { padding: 16px 14px; }
   .doc-head { flex-direction: column; }
   .top { padding: 10px 16px; }
@@ -549,3 +548,16 @@ main, .sheet, .band { overflow-wrap: anywhere; }
 .rv-later-list label { display: flex; gap: 8px; align-items: flex-start; padding: 8px; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; line-height: 1.5; }
 .rv-later-list label.on { border-color: var(--ink); background: var(--paper-2, rgba(0,0,0,0.03)); }
 .rv-later-list input { margin-top: 4px; }
+
+/* 원자료 서랍: 넓은 화면에서는 숨은 단추, 휴대폰 폭에서는 아래에서 올라오는 서랍(작업 기록이 먼저 보이게) */
+.src-toggle, .src-dock-head { display: none; }
+@media (max-width: 820px) {
+  .work-src { position: fixed; left: 0; right: 0; top: auto; bottom: 0; max-height: 72vh; overflow: auto; z-index: 25; background: var(--paper); border-top: 2px solid var(--ink);
+    box-shadow: 0 -4px 0 rgba(0,0,0,0.12); padding: 0 12px 16px; transform: translateY(105%); visibility: hidden; transition: transform 0.2s, visibility 0.2s; }
+  .work-src.open { transform: none; visibility: visible; }
+  .src-dock-head { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--paper); padding: 8px 0; z-index: 1; }
+  .src-toggle { display: inline-block; position: fixed; right: 16px; bottom: 16px; z-index: 24; box-shadow: 0 3px 0 rgba(0,0,0,0.18); }
+  .work-src.open ~ .src-toggle, body:has(.mark-editor) .src-toggle { display: none; }
+  .work-grid, .review-grid { padding-bottom: 56px; }
+}
+@media (prefers-reduced-motion: reduce) { .work-src { transition: none; } }
