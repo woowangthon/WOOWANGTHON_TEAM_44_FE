@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { api, modelName, myAnswers } from '../api.js';
 import { DocHead, LedgerTag, Stamp } from '../ui/doc.jsx';
 import { SourcePanel, SourceDock, StageBlock, useDialog } from '../ui/work.jsx';
+import PathMap from '../ui/PathMap.jsx';
 
 const refs = (it) => [it.origin, ...(it.spread ?? [])];
 
@@ -12,6 +13,7 @@ export default function Result({ run, done }) {
   const [focus, setFocus] = useState(null);
   const [focusTick, setFocusTick] = useState(0); // 근거 칸을 누를 때마다 휴대폰 폭에서 원자료 서랍을 연다
   const [ob, setOb] = useState(null);
+  const [openFound, setOpenFound] = useState(false);
   // AI 1차 판정(표시만, 점수와 무관): 결과를 먼저 보이고 판정은 뒤에서 한 번 부른다. 실패하면 판정 없이 둔다
   const [tri, setTri] = useState(done.triage ?? null);
   useEffect(() => {
@@ -44,10 +46,16 @@ export default function Result({ run, done }) {
   const missedA = A.filter((it) => !perOf(it.id)?.found);
   const foundA = A.filter((it) => perOf(it.id)?.found);
   const stageName = (k) => stages.find((s) => s.key === k)?.name ?? '';
+  // 지도에서 줄을 누르면: 그 오류 카드로 스크롤하고 초점을 옮긴다(찾은 오류는 접기를 연다). 원자료 강조는 그 항목 근거로 바꿔 둔다
+  const pick = (id) => {
+    setFocus(id);
+    if (perOf(id)?.found) setOpenFound(true);
+    setTimeout(() => { const el = document.getElementById(`item-${id}`); if (el) { el.scrollIntoView({ block: 'start' }); el.focus({ preventScroll: true }); } }, 0);
+  };
   const card = (it) => {
     const p = perOf(it.id);
     return (
-      <li key={it.id} className={p?.found ? 'found' : 'missed'}>
+      <li key={it.id} id={`item-${it.id}`} tabIndex={-1} className={p?.found ? 'found' : 'missed'}>
         <p className="li-head">
           <span className={`tag ${p?.found ? '' : 'tag-red'}`}>{p?.found ? '찾음' : '놓침'}</span> <b>{it.pattern}</b> · 처음 생긴 곳 <button className="linkish" onClick={() => { setFocus(it.id); setFocusTick((t) => t + 1); }} aria-label={`${it.origin} 근거 원자료 보기`}>{it.origin}</button>
           {it.spread.length > 0 && <> → 옮겨진 곳 {it.spread.join(' → ')}</>}
@@ -85,7 +93,10 @@ export default function Result({ run, done }) {
           </details>
         </section>
 
-        <Learned A={A} perOf={perOf} stageName={stageName} falseMarks={g.falseMarks} decisionOk={g.decisionOk} shouldReject={g.shouldReject} />
+        <div className="result-top">
+          <PathMap items={A} stages={stages} perOf={perOf} onPick={pick} />
+          <Learned A={A} perOf={perOf} stageName={stageName} falseMarks={g.falseMarks} decisionOk={g.decisionOk} shouldReject={g.shouldReject} />
+        </div>
 
         {!A.length && <p>이 판에는 A등급 오류가 없습니다. AI 동료가 늘 틀리지는 않습니다. 승인이 맞는 판입니다.</p>}
         {missedA.length > 0 && <>
@@ -93,7 +104,7 @@ export default function Result({ run, done }) {
           <ol className="ledger-list">{missedA.map(card)}</ol>
         </>}
         {foundA.length > 0 && (
-          <details className="found-list" open={!missedA.length}>
+          <details className="found-list" open={!missedA.length || openFound} onToggle={(e) => setOpenFound(e.currentTarget.open)}>
             <summary>찾은 A등급 오류 {foundA.length}개</summary>
             <ol className="ledger-list">{foundA.map(card)}</ol>
           </details>
