@@ -17,6 +17,8 @@ const ANSWERS = [
   { k: 'C', key: '3', label: '사소하다', desc: '표현만 어색하고 뜻은 같음' },
   { k: 'none', key: 'D', label: '틀리지 않았다', desc: '원자료와 맞거나 문제 삼을 일이 아님' },
 ];
+// 이 글은 괜찮은데, 이걸 옮겨 쓴 뒤 단계 글이 틀린 경우(처음 생긴 곳을 뒤 글로 옮긴다)
+const LATER = { k: 'later', key: '4', label: '이 글은 맞고, 뒤에서 틀렸다', desc: '이 내용을 옮겨 쓴 뒤 단계 글이 틀림. 다음 화면에서 어느 글인지 고름' };
 
 export default function Review({ runId }) {
   const [code, setCode] = useState(reviewCode.get());
@@ -136,7 +138,18 @@ function ReviewRun({ runId }) {
   // 등급 고르기 = 그 등급으로 판정. 등급이 그대로면 승인, 바뀌면 고침으로 남는다
   const decide = (x, g) => op(x.grade === g && !x.deleted ? { action: 'approve', item: x.id } : { action: 'edit', item: x.id, grade: g }).then(() => setStarted(false));
   // 답 하나 = 판정 하나. 답한 뒤에는 남은 질문의 첫 문장으로
-  const answer = (x, k) => (k === 'none' ? op({ action: 'delete', item: x.id }).then(() => setStarted(false)) : decide(x, k));
+  const answer = (x, k) => (k === 'later' ? setLater({ id: x.id, picked: null }) : k === 'none' ? op({ action: 'delete', item: x.id }).then(() => setStarted(false)) : decide(x, k));
+  // 「이 글은 맞고, 뒤에서 틀렸다」: 고른 글 중 가장 앞 글을 처음 생긴 곳으로, 나머지를 옮겨진 곳으로
+  const [later, setLater] = useState(null);
+  const unitIdx = (uid) => units.findIndex((u) => u.uid === uid);
+  const moveSave = (x, picked, g) => {
+    const sorted = [...picked].sort((a, b) => unitIdx(a) - unitIdx(b));
+    const mine = myMarks.find((m) => m.uid === sorted[0]);
+    return op({ action: 'edit', item: x.id, origin: sorted[0], spread: sorted.slice(1), wrongText: mine?.quote || '', grade: g, ...(mine?.pattern ? { pattern: mine.pattern } : {}),
+      note: `사람 판단: ${x.origin}은 맞고, 뒤 단계 ${sorted.join(', ')}가 틀림. ${note}` })
+      .then(() => api.reviewOp(runId, { action: 'confirmOrigin', item: x.id, value: true, note: '사람이 처음 생긴 곳을 직접 고름' }))
+      .then(() => { setLater(null); return load(); }).then(() => setStarted(false));
+  };
   const op = async (o) => {
     if (busy) return;
     setBusy(true); setError('');
@@ -152,6 +165,7 @@ function ReviewRun({ runId }) {
       if (k === 'y') op({ action: 'approve', item: it.id }).then(next);
       else if (k === 'd') answer(it, 'none');
       else if (['1', '2', '3'].includes(k)) decide(it, 'ABC'[Number(k) - 1]);
+      else if (k === '4' && it.spread?.length) answer(it, 'later');
       else if (k === 'o') op({ action: 'confirmOrigin', item: it.id, value: !it.originConfirmed });
       else if (k === 'j' || e.key === 'ArrowRight') setCur((c) => Math.min(c + 1, order.length - 1));
       else if (k === 'k' || e.key === 'ArrowLeft') setCur((c) => Math.max(c - 1, 0));
@@ -210,12 +224,46 @@ function ReviewRun({ runId }) {
 
               <h3 className="rv-ask">{w ? <>노란 부분 「{w.length > 50 ? `${w.slice(0, 50)}…` : w}」</> : '이 글'}이 원자료와 견줘 틀렸나요?</h3>
               <div className="rv-choices">
-                {ANSWERS.map((g) => (
-                  <button key={g.k} className={`btn rv-choice ${answered === g.k ? 'on' : ''}`} disabled={busy} onClick={() => answer(it, g.k)}>
+                {[...ANSWERS, ...(it.spread?.length ? [LATER] : [])].map((g) => (
+                  <button key={g.k} className={`btn rv-choice ${answered === g.k || later?.id === it.id && g.k === 'later' ? 'on' : ''}`} disabled={busy} onClick={() => answer(it, g.k)}>
                     <b>{g.label}</b><span>{g.desc}</span><kbd>{g.key}</kbd>
                   </button>
                 ))}
               </div>
+
+              {later?.id === it.id && (() => {
+                const cands = [...it.spread].sort((a, b) => unitIdx(a) - unitIdx(b));
+                const picked = later.picked ?? cands.filter((u) => myMarks.some((m) => m.uid === u));
+                const toggle = (u) => setLater({ ...later, picked: picked.includes(u) ? picked.filter((x) => x !== u) : [...picked, u] });
+                return (
+                  <div className="rv-later">
+                    <h3 className="rv-ask">뒤 단계에서 틀린 글을 모두 고르세요</h3>
+                    <p className="small muted">미영이 풀 때 빨간 줄을 그은 글은 미리 골라 두었습니다. 고른 글 가운데 가장 앞 글이 오류가 처음 생긴 곳이 됩니다.</p>
+                    <ul className="rv-later-list">
+                      {cands.map((u) => {
+                        const s2 = run.stages.find((x) => x.key === u.split('.')[0].split('#')[0]);
+                        const m = myMarks.find((x) => x.uid === u);
+                        return (
+                          <li key={u}><label className={picked.includes(u) ? 'on' : ''}>
+                            <input type="checkbox" checked={picked.includes(u)} onChange={() => toggle(u)} />
+                            <span><span className="muted small">{run.stages.indexOf(s2) + 1}단계 「{s2?.name}」{m && <b> · 미영이 풀 때 빨간 줄</b>}</span><br />{unitText(u)}
+                              {m?.note && <><br /><span className="small muted">메모: {m.note}</span></>}</span>
+                          </label></li>
+                        );
+                      })}
+                    </ul>
+                    <p className="rv-q">고른 글은 얼마나 틀렸나요?</p>
+                    <div className="rv-choices">
+                      {ANSWERS.filter((g) => g.k !== 'none').map((g) => (
+                        <button key={g.k} className="btn rv-choice" disabled={busy || !picked.length} onClick={() => moveSave(it, picked, g.k)}>
+                          <b>{g.label}</b><span>{g.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <button className="btn" onClick={() => setLater(null)}>취소</button>
+                  </div>
+                );
+              })()}
 
               <div className="row-btns">
                 <button className="btn" onClick={() => setCur(Math.max(cur - 1, 0))}>이전 <kbd>K</kbd></button>
