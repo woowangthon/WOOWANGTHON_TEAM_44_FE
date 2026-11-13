@@ -73,25 +73,26 @@ export default function About() {
   );
 }
 
-/** 수요 근거: 학과 학생 설문(받은 답만). 정리 전이면 자리만 보인다 */
+/** 수요 근거: 공개 자료(원문 확인한 것만)가 먼저, 카톡 설문은 맨 뒤 보조. 비어 있으면 자리만 보인다 */
 function Demand({ d }) {
-  const sm = d.sample;
+  const sv = d.survey;
   return (
     <section aria-label="수요 근거">
       <h2>학생들이 원하나: 수요 근거</h2>
-      {!d.ready ? (
-        <p className="muted small">학과 학생에게 짧은 설문을 받아 정리하는 중입니다. 받은 답만 그대로 싣습니다.</p>
-      ) : (
+      {!d.public.length ? <p className="muted small">공개 자료를 원문과 대조해 정리하는 중입니다. 원문에서 확인한 숫자와 인용만 싣습니다.</p> : (
+        <ul>{d.public.map((x) => <li key={x.url + x.figure}>{x.claim} <b>{x.figure}</b> <a className="small" href={x.url} target="_blank" rel="noreferrer">{x.src}</a></li>)}</ul>
+      )}
+      {sv.ready && (
         <>
-          <p className="small"><b>누구에게</b> {sm.who} · <b>몇 명</b> {sm.n}명 · <b>언제</b> {sm.when} · <b>어떻게</b> {sm.how}{sm.note ? ` · ${sm.note}` : ''}</p>
-          {d.questions.map((x) => (
+          <h3>보조: 학과 학생 설문</h3>
+          <p className="small muted">학과 학생 {sv.sample.n}명, {sv.sample.note} · {sv.sample.how}{sv.sample.when ? ` · ${sv.sample.when}` : ''}. 표본이 작고 무작위가 아니라 위 공개 자료를 보조하는 참고로만 둡니다.</p>
+          {sv.questions.map((x) => (
             <div key={x.q}>
-              <h3>{x.q}</h3>
+              <p className="small"><b>{x.q}</b></p>
               {x.answers?.length > 0 && <div className="table-wrap"><table className="eval-table"><tbody>{x.answers.map(([k, v]) => <tr key={k}><td>{k}</td><td>{v}명</td></tr>)}</tbody></table></div>}
               {x.quotes?.length > 0 && <ul className="small">{x.quotes.map((t) => <li key={t}>「{t}」</li>)}</ul>}
             </div>
           ))}
-          {d.limits.length > 0 && <p className="small muted">이 설문으로 말할 수 없는 것: {d.limits.join(' ')}</p>}
         </>
       )}
     </section>
