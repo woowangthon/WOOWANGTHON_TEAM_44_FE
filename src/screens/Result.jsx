@@ -1,6 +1,6 @@
-// 사수 모드 결과: A 찾음·헛짚음·판정, 번진 경로, 멈췄어야 할 곳, 패턴·확인 습관·막는 지시, B·C 참고, 이의 제기
+// 사수 모드 결과: 한 줄 판정 → 배운 것 → 놓친 A 카드 → 찾은 A·B·C(접기) → 작업 기록 다시 보기(S5→S1) → 이 정답표에 대해, 이의 제기
 import { useEffect, useState } from 'react';
-import { api, modelName } from '../api.js';
+import { api, modelName, myAnswers } from '../api.js';
 import { DocHead, LedgerTag, Stamp } from '../ui/doc.jsx';
 import { SourcePanel, SourceDock, StageBlock, useDialog } from '../ui/work.jsx';
 
@@ -41,68 +41,115 @@ export default function Result({ run, done }) {
   const perOf = (id) => g.perItem.find((p) => p.id === id);
   const hl = focus ? (items.find((x) => x.id === focus)?.evidence ?? []).map((e) => e.ref).filter((r) => /^[A-F]-p/.test(r)) : [];
 
+  const missedA = A.filter((it) => !perOf(it.id)?.found);
+  const foundA = A.filter((it) => perOf(it.id)?.found);
+  const stageName = (k) => stages.find((s) => s.key === k)?.name ?? '';
+  const card = (it) => {
+    const p = perOf(it.id);
+    return (
+      <li key={it.id} className={p?.found ? 'found' : 'missed'}>
+        <p className="li-head">
+          <span className={`tag ${p?.found ? '' : 'tag-red'}`}>{p?.found ? '찾음' : '놓침'}</span> <b>{it.pattern}</b> · 처음 생긴 곳 <button className="linkish" onClick={() => { setFocus(it.id); setFocusTick((t) => t + 1); }} aria-label={`${it.origin} 근거 원자료 보기`}>{it.origin}</button>
+          {it.spread.length > 0 && <> → 옮겨진 곳 {it.spread.join(' → ')}</>}
+        </p>
+        <p className="li-what">{it.wrongText ? <>「{it.wrongText}」 — </> : null}{it.why}</p>
+        {it.fix && <p className="li-fix"><b>고친 문장:</b> {it.fix}</p>}
+        {!p?.found && <p className="stop-tip"><b>어디서 멈췄어야 했나:</b> {it.origin.split('.')[0]} 단계. 여기서 원자료와 대조했으면 {it.spread.length ? `${it.spread.map((u) => u.split('.')[0]).filter((v, i, a) => a.indexOf(v) === i).join('·')}로 번지지 않았습니다` : '최종본에 남지 않았습니다'}.</p>}
+        <details className="li-more">
+          <summary>확인 습관 · 막는 지시 · 근거</summary>
+          <p className="small"><b>확인 습관:</b> {it.habit}</p>
+          {it.prevent && <p className="small"><b>막는 지시:</b> {it.prevent}</p>}
+          <p className="small muted">근거: {(it.evidence ?? []).map((e) => `${e.ref} 「${e.quote}」`).join(' / ') || '—'} · 판정: {Object.entries(it.byAudit).map(([c, b]) => `${c} ${b.grade}`).join(', ') || '사람 추가'}</p>
+        </details>
+      </li>
+    );
+  };
+
   return (
     <main className="run result">
-      <p className="band">
-        <LedgerTag status={L.status} version={L.version} /> · 감사 {L.audits.map((a) => modelName(a.model)).join(', ')} · 사람 검수에서 승인 {L.changes.approved} · 수정 {L.changes.edited} · 삭제 {L.changes.deleted} · 추가 {L.changes.added}
-      </p>
       {changed && before && (
         <p className="notice">장부가 {before.ledgerVersion}판에서 {g.ledgerVersion}판으로 바뀌었습니다(이의 제기 등). {before.ledgerVersion}판 기준 A {before.counts.foundA}/{before.counts.A} → {g.ledgerVersion}판 기준 A {g.counts.foundA}/{g.counts.A}.</p>
       )}
       <div className="sheet">
         <DocHead id={meta.runId} title={mission.title} by={`작업 ${modelName(meta.worker)} · 검토 나`} drafter="AI 동료" review={g.decision === 'approve' ? '승인' : '반려'} animate />
-        <div className="score-row">
-          <div className="score-box"><b>{g.counts.foundA}/{g.counts.A}</b><span>A등급 오류 찾음</span></div>
-          <div className="score-box"><b>{g.counts.falseMarks}</b><span>헛짚음(장부에 없는 곳)</span></div>
-          <div className="score-box"><b>{g.decisionOk ? '맞음' : '틀림'}</b><span>결재 판정({g.shouldReject ? '최종본에 A가 남아 반려가 맞음' : '최종본에 A가 없어 승인이 맞음'})</span></div>
-          <div className="score-box"><b>{g.counts.originable ? `${g.counts.originHits}/${g.counts.originable}` : '—'}</b><span>{g.counts.originable ? '처음 생긴 곳(멈췄어야 할 곳) 짚음' : '처음 생긴 곳: 이 판은 사람이 확정한 항목이 없어 세지 않음'}</span></div>
-          <div className="score-box"><b>{done.answer?.sourceViews ?? '—'}</b><span>원자료를 열어 본 횟수</span></div>
-        </div>
-        <p className="small muted">점수는 사람이 검수한 장부의 A등급(원자료와 대조하면 누구나 같은 결론이 나는 오류)으로만 매깁니다. B·C는 판단이 갈릴 수 있어 참고로만 보여 드립니다. 기록용 합계 {g.score}점(찾음 50 · 정확도 20 · 결재 20 · 처음 생긴 곳 10).</p><p className="small muted">헛짚음 = 장부에 없는 곳에 그은 빨간 줄입니다.{splitMarks.length ? ' 판단이 갈리는 칸(한 감사만 오류가 옮겨졌다고 본 칸)에 그은 줄은 찾음에도 헛짚음에도 넣지 않습니다.' : ''}</p>
+        <section className="verdict" aria-label="한 줄 판정">
+          <p className="verdict-line"><Verdict g={g} /></p>
+          <div className="score-row score-main">
+            <div className="score-box"><b>{g.counts.foundA}/{g.counts.A}</b><span>A등급 오류 찾음</span></div>
+            <div className="score-box"><b>{g.decisionOk ? '맞음' : '틀림'}</b><span>결재 판정</span></div>
+          </div>
+          <p className="small score-sub">헛짚음(장부에 없는 곳) {g.counts.falseMarks}개 · 처음 생긴 곳 짚음 {g.counts.originable ? `${g.counts.originHits}/${g.counts.originable}` : '— (사람이 확정한 항목이 없어 세지 않음)'} · 기록용 합계 {g.score}점/100</p>
+          <details className="score-how small">
+            <summary>점수 매기는 법</summary>
+            <p className="muted">점수는 사람이 검수한 장부의 A등급(원자료와 대조하면 누구나 같은 결론이 나는 오류)으로만 매깁니다. 배점은 찾음 50 · 정확도 20 · 결재 20 · 처음 생긴 곳 10입니다. B·C는 판단이 갈릴 수 있어 참고로만 보여 드립니다. 헛짚음은 장부에 없는 곳에 그은 빨간 줄입니다.{splitMarks.length ? ' 판단이 갈리는 칸(한 감사만 오류가 옮겨졌다고 본 칸)에 그은 줄은 찾음에도 헛짚음에도 넣지 않습니다.' : ''}</p>
+          </details>
+        </section>
 
-        <Learned A={A} perOf={perOf} falseMarks={g.falseMarks} decisionOk={g.decisionOk} shouldReject={g.shouldReject} />
+        <Learned A={A} perOf={perOf} stageName={stageName} falseMarks={g.falseMarks} decisionOk={g.decisionOk} shouldReject={g.shouldReject} />
 
-        <h2>A등급 오류 {A.length}개</h2>
         {!A.length && <p>이 판에는 A등급 오류가 없습니다. AI 동료가 늘 틀리지는 않습니다. 승인이 맞는 판입니다.</p>}
-        <ol className="ledger-list">
-          {A.map((it) => {
-            const p = perOf(it.id);
-            return (
-              <li key={it.id} className={p?.found ? 'found' : 'missed'}>
-                <p className="li-head">
-                  <span className={`tag ${p?.found ? '' : 'tag-red'}`}>{p?.found ? '찾음' : '놓침'}</span> <b>{it.pattern}</b> · 처음 생긴 곳 <button className="linkish" onClick={() => { setFocus(it.id); setFocusTick((t) => t + 1); }} aria-label={`${it.origin} 근거 원자료 보기`}>{it.origin}</button>
-                  {it.spread.length > 0 && <> → 옮겨진 곳 {it.spread.join(' → ')}</>}
-                </p>
-                <p>「{it.wrongText}」 — {it.why}</p>
-                {!p?.found && <p className="stop-tip"><b>어디서 멈췄어야 했나:</b> {it.origin.split('.')[0]} 단계. 여기서 원자료와 대조했으면 {it.spread.length ? `${it.spread.map((u) => u.split('.')[0]).filter((v, i, a) => a.indexOf(v) === i).join('·')}로 번지지 않았습니다` : '최종본에 남지 않았습니다'}.</p>}
-                <p className="small"><b>확인 습관:</b> {it.habit}</p>
-                {it.prevent && <p className="small"><b>막는 지시:</b> {it.prevent}</p>}
-                {it.fix && <p className="small muted">고친 문장: {it.fix}</p>}
-                <p className="small muted">근거: {(it.evidence ?? []).map((e) => `${e.ref} 「${e.quote}」`).join(' / ') || '—'} · 판정: {Object.entries(it.byAudit).map(([c, b]) => `${c} ${b.grade}`).join(', ') || '사람 추가'}</p>
-              </li>
-            );
-          })}
-        </ol>
+        {missedA.length > 0 && <>
+          <h2>놓친 A등급 오류 {missedA.length}개</h2>
+          <ol className="ledger-list">{missedA.map(card)}</ol>
+        </>}
+        {foundA.length > 0 && (
+          <details className="found-list" open={!missedA.length}>
+            <summary>찾은 A등급 오류 {foundA.length}개</summary>
+            <ol className="ledger-list">{foundA.map(card)}</ol>
+          </details>
+        )}
+        {g.falseMarks.length > 0 && <p className="small">장부에 없는 곳에 그은 줄: {g.falseMarks.join(', ')}. 장부와 생각이 다르면 아래 작업 기록에서 그 칸을 눌러 이의를 제기할 수 있습니다.</p>}
         {BC.length > 0 && (
           <details className="bc">
             <summary>B·C 참고 {BC.length}개(점수 없음, 판단이 갈릴 수 있는 곳)</summary>
-            <ul>{BC.map((it) => <li key={it.id}><b>{it.grade}</b> {it.pattern} · {it.origin} 「{it.wrongText}」 — {it.why}</li>)}</ul>
+            <ul>{BC.map((it) => <li key={it.id}><b>{it.grade}</b> {it.pattern} · {it.origin} {it.wrongText ? `「${it.wrongText}」 ` : ''}— {it.why}</li>)}</ul>
           </details>
         )}
         {splitMarks.length > 0 && <p className="small"><span className="tag tag-split">판단이 갈리는 칸</span> {splitMarks.map((s) => `${s.uid}(${s.items.join('·')}가 옮겨졌을 수 있는 칸)`).join(', ')}. 감사 하나만 오류가 옮겨졌다고 본 칸이라 점수에 넣지 않았습니다(찾음·헛짚음 모두 아님).</p>}
-        {g.falseMarks.length > 0 && <p className="small">장부에 없는 곳에 그은 줄: {g.falseMarks.join(', ')}. 장부와 생각이 다르면 아래 작업 기록에서 그 칸을 눌러 이의를 제기할 수 있습니다.</p>}
         <Triage tri={tri} marks={marks} items={items} />
 
         <h2>작업 기록 다시 보기</h2>
-        <p className="small muted">초록 = 찾은 A, 빨강 = 놓친 A, 노랑 = B·C, 하늘색 = 판단이 갈리는 칸, 회색 줄 = 헛짚음. 단위를 누르면 이의를 제기할 수 있습니다.</p>
+        <p className="small muted">풀 때와 같이 최종본부터 보여 드립니다. 초록 = 찾은 A, 빨강 = 놓친 A, 노랑 = B·C, 하늘색 = 판단이 갈리는 칸, 회색 줄 = 헛짚음. 단위를 누르면 이의를 제기할 수 있습니다.</p>
         <div className="work-grid">
           <SourceDock openKey={focusTick}><SourcePanel key={focus ?? 'none'} docs={docs} highlight={hl} /></SourceDock>
-          <div className="work-main">{stages.map((s) => <StageBlock key={s.key} stage={s} marks={myMarks} review={review} onPick={(uid) => setOb({ uid, kind: review[uid] && review[uid] !== 'false' && review[uid] !== 'split' ? 'notError' : 'missing' })} />)}</div>
+          <div className="work-main">{stages.slice().reverse().map((s) => <StageBlock key={s.key} stage={s} marks={myMarks} review={review} onPick={(uid) => setOb({ uid, kind: review[uid] && review[uid] !== 'false' && review[uid] !== 'split' ? 'notError' : 'missing' })} />)}</div>
         </div>
+        <details className="about-ledger">
+          <summary>이 정답표에 대해</summary>
+          <p className="small"><LedgerTag status={L.status} version={L.version} /> · 감사 {L.audits.map((a) => modelName(a.model)).join(', ')} · 사람 검수에서 승인 {L.changes.approved} · 수정 {L.changes.edited} · 삭제 {L.changes.deleted} · 추가 {L.changes.added}</p>
+          <p className="small muted">작업 기록을 처음 보는 감사 모델이 오류 후보를 내고, 사람이 원자료와 대조해 승인·수정·삭제·추가한 결과입니다. 자세한 과정은 <a href="#/about">만든 방법과 검증</a>에 있습니다.</p>
+        </details>
       </div>
       {ob && <Objection runId={run.meta.runId} answerId={answerId} ob={ob} items={items} onClose={() => setOb(null)} />}
-      <p className="next"><a className="btn" href="#/">다른 미션</a> <a className="btn" href="#/me">내 기록</a></p>
+      <NextStep runId={meta.runId} />
     </main>
+  );
+}
+
+/** 맨 위 한 줄 판정: 결재가 맞았나 + A등급을 몇 개 찾았나 */
+function Verdict({ g }) {
+  const { A, foundA } = g.counts;
+  const ap = g.decision === 'approve';
+  const head = g.decisionOk ? (ap ? '승인이 맞았습니다.' : '반려가 맞았습니다.') : (ap ? '승인은 맞지 않았습니다.' : '반려는 맞지 않았습니다.');
+  const why = g.decisionOk ? '' : (g.shouldReject ? ' 최종본에 A등급 오류가 남아 있어 반려해야 했습니다.' : ' 최종본에 A등급 오류가 없어 승인해도 되는 판이었습니다.');
+  const found = !A ? ' 이 판에는 A등급 오류가 없습니다.' : foundA === A ? ` A등급 오류 ${A}개를 모두 찾았습니다.` : ` ${g.decisionOk ? '다만 ' : ''}꼭 잡아야 할 A등급 오류 ${A}개 가운데 ${foundA ? `${foundA}개만` : '하나도 못'} 찾았습니다.`;
+  return <><b>{head}</b>{why}{found}</>;
+}
+
+/** 다음 행동 하나: 아직 안 푼 판이 있으면 그 판, 없으면 실패 패턴 */
+function NextStep({ runId }) {
+  const [next, setNext] = useState(null);
+  useEffect(() => {
+    api.missions().then((d) => {
+      const solved = myAnswers.all();
+      setNext((d?.missions ?? []).flatMap((m) => m.fixed).find((f) => f.playable && f.runId !== runId && !solved[f.runId]) ?? null);
+    }).catch(() => {});
+  }, [runId]);
+  return (
+    <p className="next">
+      {next ? <a className="btn btn-primary" href={`#/r/${next.runId}`}>다음 판 풀기</a> : <a className="btn btn-primary" href="#/patterns">실패 패턴 보기</a>}
+      {' '}<a href="#/">미션 목록</a> · <a href="#/me">내 기록</a>
+    </p>
   );
 }
 
@@ -134,18 +181,23 @@ function Triage({ tri, marks, items }) {
   );
 }
 
-/** 결과에서 배운 것: 놓친 패턴, 멈췄어야 할 곳, 다음에 넣을 지시 한 줄 */
-function Learned({ A, perOf, falseMarks, decisionOk, shouldReject }) {
+/** 결과에서 배운 것: 놓친 패턴, 가장 먼저 멈췄어야 할 단계, 다음에 넣을 지시 한 줄 */
+function Learned({ A, perOf, stageName, falseMarks, decisionOk, shouldReject }) {
   const missed = A.filter((it) => !perOf(it.id)?.found);
   const pats = [...new Set(missed.map((it) => it.pattern))];
-  const stops = [...new Set(missed.map((it) => it.origin.split('.')[0]))];
+  const stageOf = (it) => String(perOf(it.id)?.stopAt ?? it.origin).split('.')[0];
+  const num = (k) => Number(String(k).replace(/\D/g, '')) || 0;
+  const byStage = {};
+  for (const it of missed) byStage[stageOf(it)] = (byStage[stageOf(it)] ?? 0) + 1;
+  const stops = Object.keys(byStage).sort((a, b) => num(a) - num(b));
+  const first = stops[0];
   const prevent = missed.find((it) => it.prevent)?.prevent;
   return (
     <section className="learned" aria-label="이번 판에서 배운 것">
       <h2>이번 판에서 배운 것</h2>
       <ul>
         <li>{A.length ? (missed.length ? `A등급 ${A.length}개 가운데 ${missed.length}개를 놓쳤습니다. 놓친 유형: ${pats.join(', ')}.` : `A등급 ${A.length}개를 모두 찾았습니다.`) : '이 판에는 A등급 오류가 없었습니다. AI 동료가 늘 틀리지는 않습니다.'}</li>
-        {missed.length > 0 && <li>멈췄어야 할 곳: {stops.join('·')} 단계. 이 단계 결과를 원자료와 한 번 더 대조했으면 뒤 단계로 번지지 않았습니다.</li>}
+        {first && <li>가장 먼저 멈췄어야 할 곳: <b>{first}{stageName(first) ? ` ${stageName(first)}` : ''}</b>. 놓친 {missed.length}개 가운데 {byStage[first]}개가 여기서 시작됐습니다{stops.length > 1 ? ` (나머지: ${stops.slice(1).map((k) => `${k} ${byStage[k]}개`).join(', ')})` : ''}. 이 단계 결과를 원자료와 한 번 더 대조했으면 뒤 단계로 번지지 않았습니다.</li>}
         <li>결재: {decisionOk ? '맞게 판단했습니다' : '판단이 틀렸습니다'}({shouldReject ? '최종본에 A가 남아 반려가 맞음' : '최종본에 A가 없어 승인이 맞음'}).{falseMarks.length ? ` 장부에 없는 곳에 ${falseMarks.length}번 줄을 그었습니다.` : ''}</li>
         {prevent && <li>다음에 맡길 때 넣을 지시: 「{prevent}」</li>}
       </ul>
