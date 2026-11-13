@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { TESTSET, NATURAL } from '../data/validation.js';
+import { DEMAND } from '../data/demand.js';
 
 // 원문을 열어 문구를 확인한 것만 싣는다(11/12). 근거 정리: 사수연습_자료/채용검사_근거_1112.md
 const MAP = [
@@ -22,6 +23,8 @@ export default function About() {
         <thead><tr><th>실제 검사·기준</th><th>여기서 하는 것</th></tr></thead>
         <tbody>{MAP.map((m) => <tr key={m.src}><td>{m.test} <a className="small" href={m.url} target="_blank" rel="noreferrer">{m.src}</a></td><td>{m.here}</td></tr>)}</tbody>
       </table></div>
+
+      <Demand d={DEMAND} />
 
       <h2>작업 기록과 정답표를 만드는 방법</h2>
       <ol>
@@ -67,5 +70,30 @@ export default function About() {
         <li>팀장 모드의 장부는 사람 확인 전입니다. 결과 지표는 참고로 보고, 이의를 걸 수 있습니다.</li>
       </ul>
     </main>
+  );
+}
+
+/** 수요 근거: 학과 학생 설문(받은 답만). 정리 전이면 자리만 보인다 */
+function Demand({ d }) {
+  const sm = d.sample;
+  return (
+    <section aria-label="수요 근거">
+      <h2>학생들이 원하나: 수요 근거</h2>
+      {!d.ready ? (
+        <p className="muted small">학과 학생에게 짧은 설문을 받아 정리하는 중입니다. 받은 답만 그대로 싣습니다.</p>
+      ) : (
+        <>
+          <p className="small"><b>누구에게</b> {sm.who} · <b>몇 명</b> {sm.n}명 · <b>언제</b> {sm.when} · <b>어떻게</b> {sm.how}{sm.note ? ` · ${sm.note}` : ''}</p>
+          {d.questions.map((x) => (
+            <div key={x.q}>
+              <h3>{x.q}</h3>
+              {x.answers?.length > 0 && <div className="table-wrap"><table className="eval-table"><tbody>{x.answers.map(([k, v]) => <tr key={k}><td>{k}</td><td>{v}명</td></tr>)}</tbody></table></div>}
+              {x.quotes?.length > 0 && <ul className="small">{x.quotes.map((t) => <li key={t}>「{t}」</li>)}</ul>}
+            </div>
+          ))}
+          {d.limits.length > 0 && <p className="small muted">이 설문으로 말할 수 없는 것: {d.limits.join(' ')}</p>}
+        </>
+      )}
+    </section>
   );
 }
