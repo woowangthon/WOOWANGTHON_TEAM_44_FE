@@ -536,3 +536,7 @@ main, .sheet, .band { overflow-wrap: anywhere; }
   /* 빨간 줄·이의 창은 오른쪽 칸 위에 띄워 왼쪽 원자료를 가리지 않게 */
   .mark-editor { left: auto; right: 16px; margin: 0; width: min(560px, 54vw); max-height: calc(100vh - 32px); overflow: auto; }
 }
+.split-part { border-top: 1px solid var(--rule); margin-top: 14px; padding-top: 10px; }
+.rv-audits { margin: 0 0 6px; padding-left: 1.2em; line-height: 1.7; }
+.rv-audits li { margin: 4px 0; }
+.rv-mine details { margin-top: 6px; }
