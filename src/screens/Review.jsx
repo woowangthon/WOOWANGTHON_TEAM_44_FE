@@ -45,7 +45,8 @@ export default function Review({ runId }) {
             <li key={r.runId} className="sheet queue-card">
               <p className="li-head"><b>{r.missionId} · {modelName(r.worker)} 판</b> <span className="mono small muted">{r.runId}</span></p>
               <p className="small">장부 {last ? `${last.version}판(${last.status === 'reviewed' ? '사람 검수 완료' : 'AI 감사, 사람 확인 전'}, 항목 ${last.items}개)` : '없음'}</p>
-              {p && (
+              {p?.unchanged && <p className="small"><b>검수 끝</b> · 장부 {p.lastVersion}판으로 채점합니다. 고칠 게 생기면 다시 열어 고친 뒤 확정하면 다음 판이 됩니다.</p>}
+              {p && !p.unchanged && (
                 <>
                   <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={p.of} aria-valuenow={p.done} aria-label="검수 진행"><span style={{ width: `${p.of ? (100 * p.done) / p.of : 0}%` }} /></div>
                   <p className="small">{p.left.length ? `남은 질문 ${p.left.length}개` : '모두 답함, 확정만 남음'}</p>
@@ -53,7 +54,7 @@ export default function Review({ runId }) {
               )}
               <p className="row-btns">
                 {r.makerSolved
-                  ? <a className="btn btn-primary" href={`#/review/${r.runId}`}>{p ? (p.left.length ? '이어서 검수' : '확정하러 가기') : '검수 시작'}</a>
+                  ? <a className="btn btn-primary" href={`#/review/${r.runId}`}>{p ? (p.unchanged ? '다시 열기(고칠 때만)' : p.left.length ? '이어서 검수' : '확정하러 가기') : '검수 시작'}</a>
                   : <><a className="btn btn-primary" href={`#/r/${r.runId}`}>먼저 정답 없이 풀기</a> <a className="small" href={`#/review/${r.runId}?force=1`}>풀지 않고 열기</a></>}
               </p>
             </li>
@@ -189,7 +190,9 @@ function ReviewRun({ runId }) {
     <main className="review">
       <p className="band">{mission?.title ?? runId} · AI 동료 {modelName(run.worker)} · <b>남은 질문 {left.length}개</b>
         {' '}<button className="btn" onClick={() => setMode(mode === 'items' ? 'direct' : 'items')}>{mode === 'items' ? '감사가 놓친 오류 직접 찾기 (Tab)' : '질문으로 돌아가기 (Tab)'}</button>
-        {' '}<button className={`btn ${left.length ? '' : 'btn-primary'}`} onClick={finalize} disabled={left.length > 0}>{left.length ? `질문 ${left.length}개에 답하면 확정할 수 있습니다` : '검수 끝, 정답표 확정'}</button></p>
+        {' '}{d.progress?.unchanged
+          ? <span className="tag">확정됨 · 장부 {d.progress.lastVersion}판(고치면 다시 확정할 수 있음)</span>
+          : <button className={`btn ${left.length ? '' : 'btn-primary'}`} onClick={finalize} disabled={left.length > 0}>{left.length ? `질문 ${left.length}개에 답하면 확정할 수 있습니다` : '검수 끝, 정답표 확정'}</button>}</p>
         <p className="small"><a href="#/review">← 대기열</a></p>
       {error && <p className="error">{error}</p>}
       <p className="small muted">문장마다 「원자료와 견줘 틀렸나요?」 하나만 답하면 됩니다. 묶인 문장 나누기, 같은 오류 합치기, 오류가 옮겨진 곳 정하기는 코드가 합니다. 키보드: 1·2·3·D 답, J 건너뛰기, K 이전.</p>
