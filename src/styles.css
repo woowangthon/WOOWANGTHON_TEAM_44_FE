@@ -27,6 +27,8 @@
   background: var(--desk);
   line-height: 1.65;
   -webkit-text-size-adjust: 100%;
+  /* 한글을 낱말(어절) 단위로만 줄바꿈. 칸보다 긴 낱말·주소는 아래 main 쪽 overflow-wrap: anywhere가 받아 준다 */
+  word-break: keep-all;
 }
 * { box-sizing: border-box; }
 body {
@@ -531,7 +533,11 @@ main, .sheet, .band { overflow-wrap: anywhere; }
 .terms { margin: 6px 0 12px; color: var(--ink-2); }
 .pid { color: var(--ink-2); }
 .eyebrow { color: #a80d26; }
-.stamp-btn span, .stamp-mark span { white-space: nowrap; }
+.stamp-btn, .stamp-btn span, .stamp-mark span { white-space: nowrap; }
+.stamp-btn { letter-spacing: 0.04em; }
+/* 고른 도장: 바탕을 도장 색으로 채운다(터치 기기에서 hover 바탕이 남아 흰 글자가 안 보이던 것) */
+.stamp-btn-ok.on, .stamp-btn-ok.on:hover:not(:disabled) { background: var(--ok); color: #fff; }
+.stamp-btn-no.on, .stamp-btn-no.on:hover:not(:disabled) { background: var(--red); color: #fff; }
 .report-body .unit { display: block; margin: 0 0 6px; }
 @media (min-width: 1001px) {
   /* 빨간 줄·이의 창은 오른쪽 칸 위에 띄워 왼쪽 원자료를 가리지 않게 */

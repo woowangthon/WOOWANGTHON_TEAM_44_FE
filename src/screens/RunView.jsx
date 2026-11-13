@@ -115,8 +115,8 @@ export default function RunView({ id }) {
           <p className="decision-q">빨간 줄 {Object.keys(marks).length}개 · 원자료를 열어 본 횟수 {views.current}번. 최종본을 이대로 내보내도 됩니까?</p>
           {!playable && <p className="error">이 판은 아직 사람 검수 전이라 채점할 수 없습니다.</p>}
           <div className="decision-btns">
-            <button className={`btn stamp-btn stamp-btn-ok ${decision === 'approve' ? 'on' : ''}`} onClick={() => setDecision('approve')} disabled={!playable}>승인</button>
-            <button className={`btn stamp-btn stamp-btn-no ${decision === 'reject' ? 'on' : ''}`} onClick={() => setDecision('reject')} disabled={!playable}>반려</button>
+            <button className={`btn stamp-btn stamp-btn-ok ${decision === 'approve' ? 'on' : ''}`} onClick={() => setDecision('approve')} disabled={!playable}><span>승인</span></button>
+            <button className={`btn stamp-btn stamp-btn-no ${decision === 'reject' ? 'on' : ''}`} onClick={() => setDecision('reject')} disabled={!playable}><span>반려</span></button>
           </div>
           {decision === 'reject' && (
             <label className="small">반려 사유(AI 동료에게 돌려보낼 말)
