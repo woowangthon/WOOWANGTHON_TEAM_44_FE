@@ -540,3 +540,5 @@ main, .sheet, .band { overflow-wrap: anywhere; }
 .rv-audits { margin: 0 0 6px; padding-left: 1.2em; line-height: 1.7; }
 .rv-audits li { margin: 4px 0; }
 .rv-mine details { margin-top: 6px; }
+.rv-ask { font-size: 1.15rem; margin: 22px 0 10px; padding: 10px 14px; background: #fff6d6; border-left: 4px solid var(--warn); line-height: 1.6; }
+.rv-evid li { margin: 4px 0; }
