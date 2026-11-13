@@ -145,7 +145,7 @@ function LeadResult({ s }) {
   return (
     <section className="sheet lead-result">
       <p className="band"><span className="ltag ltag-ai">{s.label}</span> 감사 {r.auditors.map((a) => `${modelName(a.model)} ${a.count}항목`).join(', ')}. 틀렸다고 생각하면 아래에서 이의를 제기할 수 있습니다.</p>
-      {r.auditErrors?.length > 0 && <p className="notice">감사 {r.auditErrors.length}곳이 응답하지 않아 {r.auditors.length}곳의 감사만 반영했습니다({r.auditErrors.map((e) => e.split(':')[0]).join(', ')}). 같은 미션의 기준 판(감사 여러 곳)과 바로 견주기 어렵습니다.</p>}
+      {r.auditErrors?.length > 0 && <p className="notice">감사 {r.auditErrors.length}곳이 끝나지 않아 {r.auditors.length}곳의 감사만 반영했습니다({r.auditErrors.map((e) => { const [c, rest = ''] = e.split(':'); return `${c} 감사 ${rest.trim().split(' (')[0] || '응답 실패'}`; }).join(', ')}). 같은 미션의 기준 판(감사 여러 곳)과 바로 견주기 어렵습니다.</p>}
       <div className="score-row">
         <div className="score-box"><b>{myFinal}</b><span>최종본에 남은 A</span></div>
         <div className="score-box"><b>{r.blocked}</b><span>반려로 막은 A{r.remainedAfterReject ? ` · 반려했지만 비슷한 문장이 남은 A ${r.remainedAfterReject}` : ''}</span></div>
