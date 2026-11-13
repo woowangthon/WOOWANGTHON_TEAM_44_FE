@@ -127,7 +127,7 @@ function Triage({ tri, marks, items }) {
       {fresh.length > 0 && <><p className="small"><b>장부에 없는 곳에 그은 줄</b></p>
         <ul className="small">{fresh.map((j) => <li key={j.uid}><b>{j.uid}</b> {j.verdict === 'grounded' ? <span className="tag">{VERDICT.grounded}</span> : VERDICT[j.verdict]} — {j.why}{j.evidence.filter((e) => e.found).length > 0 && <span className="muted"> (근거 {j.evidence.filter((e) => e.found).map((e) => `${e.ref} 「${e.quote}」`).join(' / ')})</span>}</li>)}</ul></>}
       {same.length > 0 && <><p className="small"><b>장부 항목과 같은 칸에 그은 줄</b> (칸이 겹쳐 「찾음」으로 셌지만, 이유까지 같은지 따로 봅니다)</p>
-        <ul className="small">{same.map((j) => <li key={j.uid}><b>{j.uid}</b> {VERDICT[j.verdict]} — {j.why}{marks[j.uid]?.note ? <span className="muted"> · 내 메모: {marks[j.uid].note}</span> : null}</li>)}</ul></>}
+        <ul className="small">{same.map((j) => <li key={j.uid}><b>{j.uid}</b>{j.cand ? <span className="tag tag-split">판단이 갈리는 칸 · 점수 없음</span> : ' '}{VERDICT[j.verdict]} — {j.why}{marks[j.uid]?.note ? <span className="muted"> · 내 메모: {marks[j.uid].note}</span> : null}</li>)}</ul></>}
       <p className="small muted">판정 모델 {tri.model ?? '—'} · {tri.sec ?? '—'}초</p>
     </section>
   );
