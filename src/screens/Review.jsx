@@ -86,7 +86,6 @@ function ReviewRun({ runId }) {
   const force = /force=1/.test(location.hash);
   const [d, setD] = useState(null);
   const [error, setError] = useState('');
-  const [cur, setCur] = useState(0);
   const [mode, setMode] = useState('items'); // items | direct
   const [pickUid, setPickUid] = useState(null);
   const [note, setNote] = useState('');
@@ -97,19 +96,22 @@ function ReviewRun({ runId }) {
   const items = d?.draft.items ?? [];
   const [skipped, setSkipped] = useState(() => { try { return JSON.parse(localStorage.getItem(`redline:reviewSkip:${runId}`) || '[]'); } catch { return []; } });
   const skip = (uid) => { const n = [...new Set([...skipped, uid])]; setSkipped(n); try { localStorage.setItem(`redline:reviewSkip:${runId}`, JSON.stringify(n)); } catch { /* 저장 못 해도 화면에서는 숨김 */ } };
-  const [started, setStarted] = useState(false);
-  // 순서: 두 감사 일치 → 한쪽만 → 사람 추가. 검수 화면은 등급 A부터
-  // 남은 질문(판정 안 한 문장)을 먼저, 이미 답한 것은 뒤에. 코드가 합친 항목은 묻지 않는다
-  const order = useMemo(() => { const live = items.filter((x) => !x.mergedInto); return [...live.filter((x) => x.review === 'pending'), ...live.filter((x) => x.review !== 'pending')]; }, [items]);
+  // 순서는 작업 순서(처음 생긴 곳이 앞 단계인 것부터)로 고정한다. 답해도 순서가 바뀌지 않는다. 위치는 항목 id로 기억한다
+  const unitsAll = d ? d.run.stages.flatMap((st) => st.units) : [];
+  const uIdx = (uid) => unitsAll.findIndex((u) => u.uid === uid);
+  const order = useMemo(() => items.filter((x) => !x.mergedInto).sort((a, b) => uIdx(a.origin) - uIdx(b.origin) || a.id.localeCompare(b.id)), [items, d]); // eslint-disable-line react-hooks/exhaustive-deps
   const left = order.filter((x) => x.review === 'pending');
-  const it = order[cur];
-  // 처음 열 때는 아직 판정하지 않은 첫 항목부터
-  useEffect(() => {
-    if (started || !order.length) return;
-    const i = order.findIndex((x) => x.review === 'pending');
-    setCur(i >= 0 ? i : 0); setStarted(true);
-  }, [order, started]);
-  const next = () => setCur((c) => Math.min(c + 1, order.length - 1));
+  const [curId, setCurId] = useState(null);
+  const it = order.find((x) => x.id === curId) ?? left[0] ?? order[0];
+  const cur = order.indexOf(it);
+  const setCur = (f) => { const i = typeof f === 'function' ? f(cur) : f; const x = order[Math.max(0, Math.min(i, order.length - 1))]; if (x) setCurId(x.id); };
+  // 답한 뒤: 지금 문장 뒤의 남은 질문 → 없으면 앞쪽 남은 질문 → 없으면 그 자리
+  const goNextPending = (fromId, list) => {
+    const i = list.findIndex((x) => x.id === fromId);
+    const nx = list.slice(i + 1).find((x) => x.review === 'pending') ?? list.find((x) => x.review === 'pending' && x.id !== fromId);
+    setCurId(nx ? nx.id : fromId);
+  };
+  const next = () => setCur((c) => c + 1);
   const myMarks = d?.makerMarks ?? [];
   const units = d ? d.run.stages.flatMap((st) => st.units) : [];
   const unitText = (uid) => units.find((u) => u.uid === uid)?.text ?? '';
@@ -129,16 +131,16 @@ function ReviewRun({ runId }) {
         if (c === 'none') continue;
         await api.reviewOp(runId, { action: 'add', split: true, splitFrom: it.id, byAudit: { [p.company]: it.byAudit[p.company] }, origin: p.origin, spread: p.spread, wrongText: p.wrongText, why: p.why, pattern: p.pattern, grade: c, evidence: p.evidence, originConfirmed: false, note: `${tag}: ${it.id}에서 ${p.company} 쪽을 떼어 냄. ${note}` });
       }
-      setNote(''); await load(); setStarted(false); // 나눈 뒤에는 아직 판정 안 한 첫 항목으로
+      setNote(''); await load();
     } catch (e) { setError(e.message); await load(); } finally { setBusy(false); }
   };
   const myMarksOf = (x) => myMarks.filter((m) => [x.origin, ...(x.spread ?? [])].includes(m.uid));
   const covered = new Set(items.filter((x) => !x.deleted).flatMap((x) => [x.origin, ...(x.spread ?? [])]));
   const extraMine = myMarks.filter((m) => !covered.has(m.uid));
   // 등급 고르기 = 그 등급으로 판정. 등급이 그대로면 승인, 바뀌면 고침으로 남는다
-  const decide = (x, g) => op(x.grade === g && !x.deleted ? { action: 'approve', item: x.id } : { action: 'edit', item: x.id, grade: g }).then(() => setStarted(false));
+  const decide = (x, g) => op(x.grade === g && !x.deleted ? { action: 'approve', item: x.id } : { action: 'edit', item: x.id, grade: g }).then((ok) => ok && goNextPending(x.id, order));
   // 답 하나 = 판정 하나. 답한 뒤에는 남은 질문의 첫 문장으로
-  const answer = (x, k) => (k === 'later' ? setLater({ id: x.id, picked: null }) : k === 'none' ? op({ action: 'delete', item: x.id }).then(() => setStarted(false)) : decide(x, k));
+  const answer = (x, k) => (k === 'later' ? setLater({ id: x.id, picked: null }) : k === 'none' ? op({ action: 'delete', item: x.id }).then((ok) => ok && goNextPending(x.id, order)) : decide(x, k));
   // 「이 글은 맞고, 뒤에서 틀렸다」: 고른 글 중 가장 앞 글을 처음 생긴 곳으로, 나머지를 옮겨진 곳으로
   const [later, setLater] = useState(null);
   const unitIdx = (uid) => units.findIndex((u) => u.uid === uid);
@@ -147,13 +149,13 @@ function ReviewRun({ runId }) {
     const mine = myMarks.find((m) => m.uid === sorted[0]);
     return op({ action: 'edit', item: x.id, origin: sorted[0], spread: sorted.slice(1), wrongText: mine?.quote || '', grade: g, ...(mine?.pattern ? { pattern: mine.pattern } : {}),
       note: `사람 판단: ${x.origin}은 맞고, 뒤 단계 ${sorted.join(', ')}가 틀림. ${note}` })
-      .then(() => api.reviewOp(runId, { action: 'confirmOrigin', item: x.id, value: true, note: '사람이 처음 생긴 곳을 직접 고름' }))
-      .then(() => { setLater(null); return load(); }).then(() => setStarted(false));
+      .then((ok) => ok && api.reviewOp(runId, { action: 'confirmOrigin', item: x.id, value: true, note: '사람이 처음 생긴 곳을 직접 고름' })
+        .then(() => { setLater(null); return load(); }).then(() => goNextPending(x.id, order)));
   };
   const op = async (o) => {
-    if (busy) return;
+    if (busy) return false;
     setBusy(true); setError('');
-    try { await api.reviewOp(runId, { note, ...o }); setNote(''); await load(); } catch (e) { setError(e.message); } finally { setBusy(false); }
+    try { await api.reviewOp(runId, { note, ...o }); setNote(''); await load(); return true; } catch (e) { setError(e.message); return false; } finally { setBusy(false); }
   };
 
   useEffect(() => {
@@ -207,7 +209,7 @@ function ReviewRun({ runId }) {
             const answered = { approved: it.grade, edited: it.grade, added: it.grade, deleted: 'none' }[it.review];
             return (
             <section className="sheet review-item">
-              <p className="li-head">{pendingNow ? <b>남은 질문 {left.length}개 가운데 {left.indexOf(it) + 1}번째</b> : <b>이미 답한 문장 <span className="muted small">(바꾸려면 다시 고르세요)</span></b>}</p>
+              <p className="li-head"><b>질문 {cur + 1} / {order.length}</b> <span className="muted small">· 작업 순서대로 · 남은 질문 {left.length}개</span>{' '}{pendingNow ? <span className="tag">아직 안 답함</span> : <span className="tag">답함 · 바꾸려면 다시 고르세요</span>}</p>
 
               <p className="rv-q">AI 동료가 {stNo}단계 「{st?.name}」에서 쓴 글</p>
               <blockquote className="rv-unit">{w ? <>{text.slice(0, text.indexOf(w))}<mark className="rv-wrong">{w}</mark>{text.slice(text.indexOf(w) + w.length)}</> : text}</blockquote>
@@ -243,10 +245,11 @@ function ReviewRun({ runId }) {
                       {cands.map((u) => {
                         const s2 = run.stages.find((x) => x.key === u.split('.')[0].split('#')[0]);
                         const m = myMarks.find((x) => x.uid === u);
+                        const other = order.find((x) => x.id !== it.id && x.origin === u && x.review !== 'deleted');
                         return (
                           <li key={u}><label className={picked.includes(u) ? 'on' : ''}>
                             <input type="checkbox" checked={picked.includes(u)} onChange={() => toggle(u)} />
-                            <span><span className="muted small">{run.stages.indexOf(s2) + 1}단계 「{s2?.name}」{m && <b> · 미영이 풀 때 빨간 줄</b>}</span><br />{unitText(u)}
+                            <span><span className="muted small">{run.stages.indexOf(s2) + 1}단계 「{s2?.name}」{m && <b> · 미영이 풀 때 빨간 줄</b>}{other && <b> · 다른 질문(질문 {order.indexOf(other) + 1})에서 이미 묻는 글: 「{(other.wrongText || '').slice(0, 30)}」</b>}</span><br />{unitText(u)}
                               {m?.note && <><br /><span className="small muted">메모: {m.note}</span></>}</span>
                           </label></li>
                         );
