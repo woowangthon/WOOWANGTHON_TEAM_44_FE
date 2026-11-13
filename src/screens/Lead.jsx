@@ -153,6 +153,7 @@ function LeadResult({ s }) {
         <div className="score-box"><b>{r.sourceViews}</b><span>원자료를 열어 본 횟수</span></div>
         <div className="score-box"><b>{r.calls}번 · {r.minutes}분</b><span>호출·시간</span></div>
       </div>
+      <p className="small muted">반려로 막음은 글자 비교 기준입니다. 반려된 결과에서 감사가 짚은 틀린 구절이 다시 한 결과에 비슷하게(글자쌍 70% 이상) 남지 않았으면 막은 것으로 셉니다. 말을 바꿔 남은 오류는 막은 것으로 셀 수 있습니다.</p>
       <h3>같은 미션, 다른 맡기기 방식과 견주기</h3>
       <table className="eval-table">
         <thead><tr><th>맡긴 방식</th><th>판 수</th><th>최종본 A 평균</th></tr></thead>
