@@ -324,7 +324,7 @@ function Patch({ runId, it, stage }) {
           {r.judge?.why && <p className="small">감사({modelName(r.judge.model)}): {r.judge.why}</p>}
           {r.judge?.remains_quote && <p className="small">남은 구절: 「{r.judge.remains_quote}」</p>}
           {r.judge?.new_error_quote && <p className="small">새 오류: 「{r.judge.new_error_quote}」</p>}
-          <p className="small muted">코드 판정: 틀린 구절이 새 결과에 {r.code?.remain == null ? '판단하지 않음(구절이 짧음)' : `${Math.round(r.code.remain * 100)}% 남음(기준 ${Math.round(r.code.threshold * 100)}%)`} · {r.sec}초 · {r.label}</p>
+          <p className="small muted">코드 판정: {r.code?.remain == null ? '틀린 구절이 없거나 짧아 감사 판정만 씀(빠뜨린 내용 오류)' : `틀린 구절이 새 결과에 ${Math.round(r.code.remain * 100)}% 남음(기준 ${Math.round(r.code.threshold * 100)}%)`} · {r.sec}초 · {r.label}</p>
           <details><summary className="small">다시 한 결과 보기</summary>
             <ul className="work-list">{r.after.map((u) => <li key={u.uid}><span className="uid">{u.uid.split('.')[1]}</span>{u.text}</li>)}</ul>
           </details>
