@@ -16,9 +16,9 @@ export function Stamp({ kind, label, small, animate }) {
 }
 
 /** 문서 머리. drafter = 기안(AI 동료 모델 이름), review = null | '승인' | '반려' */
-export function DocHead({ id, title, by, drafter, review, animate, note }) {
+export function DocHead({ id, title, by, drafter, review, animate, note, phoneHideApproval }) {
   return (
-    <header className="doc-head">
+    <header className={`doc-head${phoneHideApproval ? ' doc-head-run' : ''}`}>
       <div className="doc-meta">
         <p className="doc-no">문서번호 {docNo(id)}</p>
         <h1 className="doc-title">{title}</h1>

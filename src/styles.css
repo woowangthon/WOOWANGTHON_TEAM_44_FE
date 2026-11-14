@@ -404,7 +404,10 @@ button.line:hover { background: var(--paper-2); }
 .stage-inst p { white-space: pre-wrap; background: var(--paper-2); padding: 6px 10px; margin: 4px 0; }
 .unit { border-radius: 2px; padding: 0 1px; }
 .unit.pickable, .unit-row.pickable { cursor: pointer; }
-.unit.pickable:hover, .unit-row.pickable:hover { background: #fdf6e6; }
+/* 11/14 UX ③: 누를 수 있는 문장에 점선 밑줄(휴대폰에도 보임). 빨간 줄(.marked)이 뒤에서 덮음 */
+.unit.pickable, .unit-row.pickable td { text-decoration: underline dotted var(--ink-3); text-underline-offset: 5px; text-decoration-thickness: 1px; }
+.unit.pickable:hover, .unit-row.pickable:hover, .unit.pickable:focus-visible, .unit-row.pickable:focus-visible { background: #fdf6e6; }
+.unit.pickable:hover, .unit.pickable:focus-visible, .unit-row.pickable:hover td, .unit-row.pickable:focus-visible td { text-decoration-color: var(--red); }
 .uid { font-size: 0.68rem; color: var(--ink-3); vertical-align: super; margin-right: 2px; }
 .unit.marked, .unit-row.marked td { text-decoration: underline wavy var(--red); text-underline-offset: 4px; text-decoration-thickness: 1.5px; }
 .rv-foundA { background: #e3f3e6; } .unit-row.rv-foundA td { background: #e3f3e6; }
@@ -478,7 +481,6 @@ main, .sheet, .band { overflow-wrap: anywhere; }
 .pattern { margin: 14px 0; } .example { border-top: 1px dotted var(--rule); padding: 6px 0; } .example p { margin: 2px 0; }
 
 /* 사수 모드: 최종본부터 읽기 */
-.read-guide { background: var(--paper-2); border-left: 3px solid var(--ink); padding: 6px 10px; margin: 0 0 6px; }
 .earlier-title { font-size: 1rem; margin: 22px 0 6px; padding-top: 10px; border-top: 2px solid var(--ink); }
 .earlier-stage { border-top: 1px solid var(--rule); }
 .earlier-stage > summary { cursor: pointer; padding: 10px 0; list-style-position: inside; }
@@ -669,3 +671,14 @@ button.pm-row:hover { background: var(--paper-2); }
   .pm-grid { padding: 6px 6px 8px; }
   .pm-sname { display: none; }
 }
+
+/* 11/14 UX ③: 작업 화면 맨 위 할 일 카드, 결재 버튼이 꺼진 이유, 휴대폰 작업 화면에서는 결재란(기안·검토) 숨김 */
+.todo-card { border: 2px solid var(--ink); border-radius: var(--radius); background: var(--paper); padding: 12px 16px; margin: 4px 0 14px; color: var(--ink); }
+.todo-title { font-size: 1.05rem; margin: 0 0 6px; }
+.todo-steps { margin: 0 0 6px; padding-left: 1.4em; }
+.todo-steps li { margin: 2px 0; }
+.todo-note { margin: 0; color: var(--ink-2); }
+.earlier-title .small { font-weight: 400; }
+.stage-hint { color: var(--red); font-weight: 600; }
+.decision-why { margin: 6px 0 0; }
+@media (max-width: 820px) { .doc-head-run .approval { display: none; } }

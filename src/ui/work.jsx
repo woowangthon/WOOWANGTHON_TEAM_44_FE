@@ -105,7 +105,7 @@ const hasSelection = () => { const sel = typeof window !== 'undefined' ? window.
  * 단계 하나. units를 종류에 맞게 그린다. onPick(uid)가 있으면 단위를 누를 수 있다.
  * marks: { uid: {pattern, origin, note} }, review: { uid: 'missA'|'foundA'|'bc'|'false' } (결과 화면)
  */
-export function StageBlock({ stage, onPick, marks, review, notes }) {
+export function StageBlock({ stage, onPick, marks, review, notes, hint }) {
   // 그냥 누르면 문장 전체, 드래그하면 고른 구절(놓는 순간 편집 창이 뜬다)
   const pick = (uid) => onPick && (() => { if (!hasSelection()) onPick(uid, ''); });
   const onUp = onPick ? (e) => { const p = pickedPhrase(e.currentTarget); if (p) onPick(p.uid, p.quote); } : undefined;
@@ -150,6 +150,7 @@ export function StageBlock({ stage, onPick, marks, review, notes }) {
         <span className="stage-key">{stage.key}</span>
         <span className="stage-name">{stage.name}</span>
         <span className="stage-in small muted">받은 것: {inputsKo(stage.inputs)}</span>
+        {hint && <span className="stage-hint small">{hint}</span>}
       </header>
       <details className="stage-inst small"><summary>이 단계에 준 지시</summary><p>{stage.instruction}</p></details>
       {body()}

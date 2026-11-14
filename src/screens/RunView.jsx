@@ -70,24 +70,28 @@ export default function RunView({ id }) {
       </p>
       {done?.pending && <p className="notice">{done.message} <a href="#/review">검수 화면으로</a></p>}
       <div className="sheet">
-        <DocHead id={id} title={mission.title} by={`오늘 ${mission.today} · 원자료 ${Object.keys(docs).length}건 · 단계 ${stages.length}개`} drafter="AI 동료" review={null} />
+        <DocHead id={id} title={mission.title} by={`오늘 ${mission.today} · 원자료 ${Object.keys(docs).length}건 · 단계 ${stages.length}개`} drafter="AI 동료" review={null} phoneHideApproval />
+        <section className="todo-card" aria-label="할 일">
+          <h2 className="todo-title">할 일</h2>
+          <ol className="todo-steps">
+            <li>아래 최종본({stages.slice(-2).reverse().map((s) => `${s.key} ${s.name}`).join(', ')})을 원자료와 한 문장씩 대조하세요.</li>
+            <li>틀린 문장을 누르면 빨간 줄을 그을 수 있습니다.</li>
+            <li>다 봤으면 맨 아래에서 승인 또는 반려를 결재하세요.</li>
+          </ol>
+          <p className="todo-note">틀린 곳이 없을 수도 있습니다. 앞 단계를 펼쳐 오류가 처음 생긴 곳을 짚으면 「멈췄어야 할 곳」을 맞힌 것입니다.</p>
+        </section>
         <p className="brief">{mission.brief}</p>
-        <p className="small muted">
-          할 일: 최종본(마지막 두 단계)을 원자료와 대조해 틀린 칸에 빨간 줄을 긋고, 이대로 내보내도 되는지 결재합니다.
-          틀린 곳이 없을 수도 있습니다. 앞 단계를 펼쳐 오류가 처음 생긴 곳을 짚으면 「멈췄어야 할 곳」을 맞힌 것입니다.
-        </p>
         <div className="work-grid">
           <SourceDock onOpen={() => { views.current++; bump((x) => x + 1); }}><SourcePanel docs={docs} onView={() => { views.current++; bump((x) => x + 1); }} /></SourceDock>
           <div className="work-main">
             {/* 최종본(마지막 두 단계)부터 읽고, 이상한 곳이 있을 때만 앞 단계를 펼쳐 거슬러 올라간다. 팀장이 결과를 검토하는 순서와 같다 */}
             {(() => {
-              const block = (s) => <StageBlock key={s.key} stage={s} marks={marks} onPick={playable && !done ? (uid, quote) => setEditing({ uid, quote }) : undefined} notes={notes} />;
+              const block = (s, hint) => <StageBlock key={s.key} stage={s} marks={marks} onPick={playable && !done ? (uid, quote) => setEditing({ uid, quote }) : undefined} notes={notes} hint={hint} />;
               const finals = stages.slice(-2).reverse();
               const earlier = stages.slice(0, -2).reverse();
               return (<>
-                <p className="read-guide small">최종본부터 보여 드립니다. 원자료와 다른 곳이 보이면 아래 앞 단계를 펼쳐 그 내용이 처음 생긴 곳을 찾으세요.</p>
-                {finals.map(block)}
-                <h3 className="earlier-title">앞 단계 <span className="small muted">거슬러 올라가며 확인</span></h3>
+                {finals.map((s, i) => block(s, i === 0 && playable && !done ? '문장을 눌러 빨간 줄' : undefined))}
+                <h3 className="earlier-title">앞 단계 <span className="small muted">이상한 문장이 보이면 펼쳐서 처음 틀린 곳을 찾으세요</span></h3>
                 {earlier.map((s) => {
                   const n = s.units.filter((u) => marks[u.uid]).length;
                   return (
@@ -112,7 +116,7 @@ export default function RunView({ id }) {
 
       {!done && (
         <section className="decision sheet" aria-label="결재">
-          <p className="decision-q">빨간 줄 {Object.keys(marks).length}개 · 원자료를 열어 본 횟수 {views.current}번. 최종본을 이대로 내보내도 됩니까?</p>
+          <p className="decision-q">빨간 줄 {Object.keys(marks).length}개를 그었습니다. 최종본을 이대로 내보내도 될까요?</p>
           {!playable && <p className="error">이 판은 아직 사람 검수 전이라 채점할 수 없습니다.</p>}
           <div className="decision-btns">
             <button className={`btn stamp-btn stamp-btn-ok ${decision === 'approve' ? 'on' : ''}`} onClick={() => setDecision('approve')} disabled={!playable}><span>승인</span></button>
@@ -124,7 +128,10 @@ export default function RunView({ id }) {
             </label>
           )}
           {error && <p className="error">{error}</p>}
-          <button className="btn btn-primary" disabled={!decision || sending || (decision === 'reject' && reason.trim().length < 4)} onClick={submit}>{sending ? '보내는 중…' : '결재하고 결과 보기'}</button>
+          <button className="btn btn-primary" disabled={!playable || !decision || sending || (decision === 'reject' && reason.trim().length < 4)} onClick={submit}>{sending ? '보내는 중…' : '결재하고 결과 보기'}</button>
+          {playable && (!decision || (decision === 'reject' && reason.trim().length < 4)) && (
+            <p className="decision-why small muted" aria-live="polite">{!decision ? '승인 또는 반려를 먼저 고르세요.' : '반려 사유를 4자 이상 적어 주세요.'}</p>
+          )}
         </section>
       )}
     </main>
