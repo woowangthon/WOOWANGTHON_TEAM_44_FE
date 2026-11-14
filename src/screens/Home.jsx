@@ -49,17 +49,17 @@ export default function Home() {
         <p className="small terms"><b>판</b> AI가 한 번 돌린 작업 기록 · <b>장부</b> 그 판의 오류 정답표(사람 검수) · <b>A등급</b> 원자료와 대조하면 누구나 같은 결론이 나는 오류</p>
         <div className="practice">
           <Slide as="a" from="left" fromSm="left" fromLg="left" delay={0} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
-            <span className="pcard-k">잡기 · 약 10~20분</span>
+            <span className="pcard-k">잡기 · 판 하나</span>
             <b>판 하나 검수하기</b>
             <span>{firstMission ? `「${firstMission.title}」` : '여러 단계 작업 기록'}을 최종본부터 거슬러 읽고 빨간 줄 → 결재. 결과에서 놓친 오류의 「처음 생긴 곳」까지 따라갑니다.</span>
           </Slide>
           <Slide as="a" from="left" fromSm="right" fromLg="up" delay={60} className="pcard" href="#/drill">
-            <span className="pcard-k">잡기 · 1분</span>
+            <span className="pcard-k">잡기 · 3문항</span>
             <b>짧은 연습 3문항</b>
             <span>판의 문장 하나와 원자료 문단을 보고 「맞다 / 틀렸다」를 고릅니다. 사람이 확정한 장부로 바로 확인합니다.</span>
           </Slide>
           <Slide as="a" from="left" fromSm="left" fromLg="up" delay={120} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
-            <span className="pcard-k">막기 · 30초</span>
+            <span className="pcard-k">막기 · 다시 시키기 약 30초</span>
             <b>놓친 오류 막아 보기</b>
             <span>결과의 놓친 오류에서, 그 오류가 생긴 단계 하나만 지시를 고쳐 AI 동료에게 다시 시킵니다. 막혔는지 감사가 판정합니다.</span>
           </Slide>
