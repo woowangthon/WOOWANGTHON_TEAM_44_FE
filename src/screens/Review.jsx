@@ -301,6 +301,7 @@ function ReviewRun({ runId }) {
             </section>
           )}
           {(d.objections ?? []).filter((o) => o.status === 'open').map((o) => <ObjectionJudge key={o.id} o={o} canAccept={d.versions.some((v) => v.status === 'reviewed') || run.origin === 'live'} onDone={load} />)}
+          {d.versions.some((v) => v.status === 'reviewed') && <DrillConfirm runId={runId} />}
           <p className="small muted">작업 기록은 최종본부터 보여 드립니다.</p>
           <div className="work-main">{[...run.stages].reverse().map((s) => <StageBlock key={s.key} stage={s} review={review} marks={Object.fromEntries(hlUnits.map((u) => [u, {}]))} onPick={mode === 'direct' ? setPickUid : undefined} />)}</div>
         </div>
@@ -486,6 +487,72 @@ function ObjectionJudge({ o, canAccept = true, onDone }) {
         </>
       )}
       {!msg && canAccept && <label className="small">판정 이유(선택, 공개 수치와 이력에 남음)<input value={note} onChange={(e) => setNote(e.target.value)} /></label>}
+    </section>
+  );
+}
+
+/** 짧은 연습(F4) 문항 확정: 틀린 문장 문항은 장부에서 자동, 「맞는 문장」 문항은 만든 사람이 하나씩 확정한다(정답표가 틀렸을 수 있는 문장을 「맞다」로 단정하지 않게) */
+const DRILL_SKIP_DEFAULT = { 'S2.r4': 1, 'S3.i3': 1, 'S4.b2': 1, 'S5.n3': 1, 'S5.n1': 1 }; // 설계안 3.4: L1과 같은 조건을 뺐는데 장부에서 맞다고 본 문장(판단이 갈림)
+function DrillConfirm({ runId }) {
+  const [c, setC] = useState(null);
+  const [error, setError] = useState('');
+  const [okPick, setOkPick] = useState({}); // uid → { use, paras:[pid] }
+  const [skipErr, setSkipErr] = useState({});
+  const [saved, setSaved] = useState(null);
+  useEffect(() => {
+    api.reviewDrill(runId).then((r) => {
+      setC(r);
+      const init = {};
+      for (const o of r.candidates.ok) init[o.uid] = { use: !DRILL_SKIP_DEFAULT[o.uid], paras: (o.suggest ?? []).slice(0, 1).map((x) => x.pid) };
+      setOkPick(init);
+    }).catch((e) => setError(e.message));
+  }, [runId]);
+  if (error) return <section className="sheet"><h3 className="rv-q">짧은 연습 문항 확정</h3><p className="error">{error}</p></section>;
+  if (!c) return null;
+  const set = (uid, f) => setOkPick({ ...okPick, [uid]: { ...okPick[uid], ...f } });
+  const okN = Object.values(okPick).filter((x) => x.use && x.paras.length).length;
+  const errN = c.candidates.error.filter((e) => !skipErr[e.uid]).length;
+  const save = async () => {
+    try {
+      const r = await api.reviewDrillSave(runId, {
+        ledgerVersion: c.ledgerVersion,
+        ok: Object.entries(okPick).filter(([, x]) => x.use && x.paras.length).map(([uid, x]) => ({ uid, paras: x.paras.slice(0, 2) })),
+        skipError: Object.keys(skipErr).filter((u) => skipErr[u]),
+        skip: Object.entries(okPick).filter(([, x]) => !x.use).map(([uid]) => ({ uid, reason: DRILL_SKIP_DEFAULT[uid] ? '같은 조건을 뺀 문장인데 장부에서 맞다고 봄(판단이 갈림)' : '만든 사람이 뺌' })),
+      });
+      setSaved(r.drillset);
+    } catch (e) { setError(e.message); }
+  };
+  const last = c.drillsets?.at?.(-1);
+  return (
+    <section className="sheet" aria-label="짧은 연습 문항 확정">
+      <h3 className="rv-q">짧은 연습 문항을 확정할까요?</h3>
+      <p className="small">틀린 문장 {c.candidates.error.length}개는 장부에서 자동으로 문항이 됩니다. 아래 「맞는 문장」 후보 {c.candidates.ok.length}개는 학생에게 「이 문장은 맞다」고 알려 주게 되므로, 하나씩 보고 낼지 정해 주세요. 판단이 갈리는 5개(설계안 3.4)는 미리 빼 두었습니다. 감사 표시는 감사 모델이 짚었다가 사람 검수에서 지운 흔적이니, 읽어 보고 정하세요.{last ? ` 지금 세트: ${last.version}판(${last.questions?.length ?? '?'}문항).` : ' 아직 확정한 세트가 없습니다.'}</p>
+      <ol className="rv-later-list" style={{ listStyle: 'decimal', paddingLeft: '1.4em' }}>
+        {c.candidates.ok.map((o) => {
+          const x = okPick[o.uid] ?? { use: false, paras: [] };
+          const flagged = o.flags?.audits?.length ? o.flags.audits.map((a) => `${a.company} ${a.as}${a.grade ? ` ${a.grade}` : ''}`).join(', ') : '';
+          return (
+            <li key={o.uid} style={{ marginBottom: 10 }}>
+              <p className="rv-unit" style={{ margin: '4px 0' }}><span className="mono">{o.uid}</span> {o.text}</p>
+              {flagged && <p className="small" style={{ color: 'var(--amber)' }}>감사 표시: {flagged}{o.flags.audits[0]?.why ? ` — ${o.flags.audits[0].why}` : ''}</p>}
+              {DRILL_SKIP_DEFAULT[o.uid] && <p className="small" style={{ color: 'var(--amber)' }}>설계안 3.4에서 빼자고 한 문장(L1과 같은 조건을 뺌)</p>}
+              <div className="row-btns">
+                <button className={`btn small ${x.use ? 'on' : ''}`} onClick={() => set(o.uid, { use: true })}>맞는 문장으로 냄</button>
+                <button className={`btn small ${!x.use ? 'on' : ''}`} onClick={() => set(o.uid, { use: false })}>빼기</button>
+              </div>
+              {x.use && <p className="small">함께 보여 줄 원자료 문단(1~2개): {(o.suggest ?? []).map((sg) => (
+                <label key={sg.pid} className="chk"><input type="checkbox" checked={x.paras.includes(sg.pid)} onChange={(e) => set(o.uid, { paras: e.target.checked ? [...x.paras, sg.pid].slice(-2) : x.paras.filter((p) => p !== sg.pid) })} /> {sg.pid}</label>
+              ))}</p>}
+            </li>
+          );
+        })}
+      </ol>
+      <details className="small"><summary>틀린 문장 문항 {c.candidates.error.length}개(자동, 뺄 것만 고르기)</summary>
+        <ul>{c.candidates.error.map((e) => <li key={e.uid}><label className="chk"><input type="checkbox" checked={!skipErr[e.uid]} onChange={(ev) => setSkipErr({ ...skipErr, [e.uid]: !ev.target.checked })} /> <span className="mono">{e.uid}</span> {e.text}</label></li>)}</ul>
+      </details>
+      <p className="row-btns"><button className="btn btn-primary" onClick={save} disabled={!!saved}>이대로 확정(틀린 문장 {errN} + 맞는 문장 {okN} = {errN + okN}문항)</button></p>
+      {saved && <p className="small">확정했습니다: 세트 {saved.version}판 · {saved.n}문항(틀린 {saved.error}, 맞는 {saved.ok}) · 장부 {saved.ledgerVersion}판 기준. 이제 이 판을 결재한 기기에서 짧은 연습이 열립니다.</p>}
     </section>
   );
 }

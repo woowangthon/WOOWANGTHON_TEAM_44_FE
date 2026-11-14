@@ -56,10 +56,14 @@ export const api = {
   history: () => req('/api/play', { action: 'history', deviceId: deviceId() }),
   stats: () => req('/api/stats'),
   lead: (action, b = {}) => req('/api/lead', { action, ...b, ...who() }),
+  patch: (b) => req('/api/lead', { action: 'patch', ...b, ...who() }),
+  drill: (action, b = {}) => req('/api/drill', { action, ...b, ...who() }),
   reviewQueue: () => req('/api/review', null, rv()),
   reviewRun: (id, force) => req(`/api/review?run=${encodeURIComponent(id)}${force ? '&force=1' : ''}`, null, rv()),
   reviewOp: (runId, op) => req('/api/review', { runId, op }, rv()),
   reviewFinalize: (runId) => req('/api/review', { runId, finalize: true }, rv()),
+  reviewDrill: (runId) => req(`/api/review?run=${encodeURIComponent(runId)}&drill=1`, null, rv()),
+  reviewDrillSave: (runId, drillset) => req('/api/review', { runId, drillset }, rv()),
   reviewObjection: (objectionId, accept, note, op) => req('/api/review', { objectionId, accept, note, op }, rv()),
 };
 
