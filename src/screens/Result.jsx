@@ -4,6 +4,7 @@ import { api, modelName, myAnswers } from '../api.js';
 import { DocHead, LedgerTag, Stamp } from '../ui/doc.jsx';
 import { SourcePanel, SourceDock, StageBlock, useDialog } from '../ui/work.jsx';
 import PathMap from '../ui/PathMap.jsx';
+import Slide from '../ui/Slide.jsx';
 
 const refs = (it) => [it.origin, ...(it.spread ?? [])];
 
@@ -66,7 +67,7 @@ export default function Result({ run, done }) {
     const ev = evOf(it.id);
     const srcRefs = (it.evidence ?? []).map((e) => (typeof e === 'string' ? e : e.ref)).filter((r) => /^[A-Z]-p\d+$/.test(r ?? ''));
     return (
-      <li key={it.id} id={`item-${it.id}`} tabIndex={-1} className={p?.found ? 'found' : 'missed'}>
+      <Slide as="li" from="left" key={it.id} id={`item-${it.id}`} tabIndex={-1} className={p?.found ? 'found' : 'missed'}>
         <p className="li-head">
           <span className={`tag ${p?.found ? 'tag-ok' : 'tag-red'}`}>{p?.found ? '찾음' : '놓침'}</span> <b>{it.pattern}</b> · 처음 생긴 곳 <button className="linkish" onClick={() => goUnit(it)} aria-label={`${it.origin} 칸과 근거 원자료 보기`}>{it.origin}</button>
           {it.spread.length > 0 && <> → 옮겨진 곳 {it.spread.join(' → ')}</>}
@@ -89,7 +90,7 @@ export default function Result({ run, done }) {
           <p className="small muted">근거: {(it.evidence ?? []).map((e) => (typeof e === 'string' ? e : `${e.ref} 「${e.quote}」`)).join(' / ') || '—'} · 판정: {Object.entries(it.byAudit ?? {}).map(([c, b]) => `${c} ${b.grade}`).join(', ') || '사람 추가'}</p>
         </details>
         {!p?.found && <Patch runId={meta.runId} it={it} stage={stages.find((s) => s.key === it.origin.split('.')[0])} />}
-      </li>
+      </Slide>
     );
   };
 
@@ -152,11 +153,11 @@ export default function Result({ run, done }) {
         </details>
       </div>
       {ob && <Objection runId={run.meta.runId} answerId={answerId} ob={ob} items={items} onClose={() => setOb(null)} />}
-      <section className="sheet" style={{ marginTop: 16 }} aria-label="이어서 연습">
+      <Slide as="section" from="up" className="sheet" style={{ marginTop: 16 }} aria-label="이어서 연습">
         <h2 style={{ marginTop: 0 }}>이어서 연습</h2>
         <p>이 판의 문장으로 「맞다 / 틀렸다」를 고르는 짧은 연습입니다. 하루 3문항, 1분 안팎입니다.</p>
         <p><a className="btn btn-primary" href={`#/drill`}>짧은 연습 3문항</a></p>
-      </section>
+      </Slide>
       <NextStep runId={meta.runId} />
     </main>
   );

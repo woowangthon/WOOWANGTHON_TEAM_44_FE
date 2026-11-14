@@ -350,10 +350,9 @@ button.pm-row:hover, button.pm-row.on { background: var(--bg-2); }
 .pm-tick { stroke: var(--line); stroke-width: 1; }
 .pm-missed, .pm-missed-c { --pm-c: var(--red); }
 .pm-found { --pm-c: var(--green); }
-.pm-line { stroke: var(--pm-c); stroke-width: 3; stroke-linecap: round; animation: pm-draw 0.6s ease-out both; }
+.pm-line { stroke: var(--pm-c); stroke-width: 3; stroke-linecap: round; }
 .pm-dot-origin { fill: var(--pm-c); }
 .pm-dot-spread { fill: #fff; stroke: var(--pm-c); stroke-width: 2.5; }
-@keyframes pm-draw { from { opacity: 0; } to { opacity: 1; } }
 .pm-stop-note { margin-left: auto; color: var(--red); font-weight: 600; }
 .pm-stop-chip { display: inline-block; background: var(--red); color: #fff; padding: 0 6px; border-radius: 0; margin-right: 4px; font-family: var(--mono); }
 .pm-legend { margin: 6px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--ink-3); }
@@ -538,3 +537,29 @@ button.pm-row:hover, button.pm-row.on { background: var(--bg-2); }
 
 /* 팀장 모드 작업 모델 고르기는 내용 폭만 */
 .lead #worker-co { width: auto; display: inline-block; min-width: 12em; }
+
+/* ---------- 움직임 (parkmiyeong.com 규칙을 Redline에 맞춰 줄여 가져옴) ----------
+  1) 테두리 있는 상자만 움직인다(첫 화면 카드, 결과의 배운 것·오류 카드). 글과 일하는 화면(작업·짧은 연습·검수·팀장 모드)은 움직이지 않는다.
+  2) 스크롤 위치가 「언제」를 정하고 움직임은 짧게 끝난다(들어올 때 0.42초 감속, 나갈 때 0.26초 가속). 되감으면 거꾸로.
+  3) 뜻이 있는 움직임만: 오류가 번진 길의 선은 처음 틀린 단계에서 오른쪽으로 그어지고, 첫 화면 예시는 S1→S5 순서로 들어온다.
+  html.motion이 없으면(움직임 줄이기) 아래 규칙은 하나도 걸리지 않는다. transform·opacity만 쓴다. */
+.motion { --mv-d: 20px; --mv-out: cubic-bezier(.55, 0, .8, .2); --mv-in: cubic-bezier(.16, .84, .3, 1); }
+@media (min-width: 640px) { .motion { --mv-d: 36px; } }
+[data-slide="left"] { --dx: -1; --dy: 0; }
+[data-slide="right"] { --dx: 1; --dy: 0; }
+[data-slide="up"] { --dx: 0; --dy: 1; }
+@media (min-width: 640px) { [data-slide-sm="left"] { --dx: -1; --dy: 0; } [data-slide-sm="right"] { --dx: 1; --dy: 0; } [data-slide-sm="up"] { --dx: 0; --dy: 1; } }
+@media (min-width: 1024px) { [data-slide-lg="left"] { --dx: -1; --dy: 0; } [data-slide-lg="right"] { --dx: 1; --dy: 0; } [data-slide-lg="up"] { --dx: 0; --dy: 1; } }
+.motion [data-slide] { transition: transform 420ms var(--mv-in) var(--slide-delay, 0ms), opacity 300ms var(--mv-in) var(--slide-delay, 0ms); }
+.motion [data-slide]:not(.in) { opacity: 0; transform: translate3d(calc(var(--dx, 0) * var(--mv-d)), calc(var(--dy, 0) * var(--mv-d) * .6), 0); transition: transform 260ms var(--mv-out), opacity 220ms var(--mv-out); }
+/* 오류가 번진 길: 줄마다 80ms씩 늦게, 처음 틀린 점 → 선이 오른쪽으로 → 옮겨 적힌 점 */
+.motion .pm-line { transform-box: fill-box; transform-origin: 0 50%; animation: line-x 600ms var(--mv-in) both; animation-delay: calc(var(--i, 0) * 80ms + 150ms); }
+.motion .pm-dot-spread { animation: fade-in 260ms ease-out both; animation-delay: calc(var(--i, 0) * 80ms + 650ms); }
+.motion .pm-dot-origin { animation: fade-in 200ms ease-out both; animation-delay: calc(var(--i, 0) * 80ms); }
+/* 첫 화면 예시: 원자료 → S1 → … → S5 문장이 차례로, 선은 S2에서 S5로 */
+.motion .hf-row { animation: row-in 420ms var(--mv-in) both; animation-delay: calc(var(--i, 0) * 110ms + 250ms); }
+.motion .hf-line { transform-box: fill-box; transform-origin: 0 50%; animation: line-x 700ms var(--mv-in) both; animation-delay: 500ms; }
+.motion .hf-spread { animation: fade-in 240ms ease-out both; animation-delay: 1050ms; }
+@keyframes line-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes row-in { from { opacity: 0; transform: translate3d(-14px, 0, 0); } to { opacity: 1; transform: none; } }

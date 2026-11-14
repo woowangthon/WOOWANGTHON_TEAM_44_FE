@@ -41,8 +41,8 @@ export default function PathMap({ items, stages, perOf, onPick }) {
           </div>
         </div>
         <ol className="pm-rows">
-          {rows.map(({ it, found, from, to, last }) => (
-            <li key={it.id}>
+          {rows.map(({ it, found, from, to, last }, idx) => (
+            <li key={it.id} style={{ '--i': idx }}>
               <button type="button" className={`pm-row ${found ? 'pm-found' : 'pm-missed'}`} onClick={() => onPick(it.id)}
                 aria-label={`${found ? '찾음' : '놓침'} ${it.pattern}: ${from}에서 처음 틀려 ${to.length ? `${to.join('·')}로 옮겨짐` : '그 단계에 남음'}. 설명으로 가기`}>
                 <span className="pm-label"><span className={`pm-tag ${found ? '' : 'pm-tag-red'}`}>{found ? '찾음' : '놓침'}</span> {it.pattern}</span>
