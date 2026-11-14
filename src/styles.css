@@ -523,3 +523,6 @@ button.pm-row:hover, button.pm-row.on { background: var(--bg-2); }
   .drill-choices, .decision-btns { grid-template-columns: 1fr; }
   .practice, .hero-side.two { grid-template-columns: 1fr; }
 }
+
+/* 팀장 모드 작업 모델 고르기는 내용 폭만 */
+.lead #worker-co { width: auto; display: inline-block; min-width: 12em; }
