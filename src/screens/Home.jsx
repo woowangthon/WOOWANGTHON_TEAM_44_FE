@@ -21,28 +21,32 @@ export default function Home() {
   const done1 = firstRun && solved[firstRun.runId];
   return (
     <main>
-      <section className="hero">
-        <div>
-          <p className="eyebrow">AI 활용 평가가 있는 채용을 앞둔 대학생을 위해</p>
-          <h1>AI에게 일을 맡기고, 틀린 곳을 잡고, 책임지고 내보내는 연습</h1>
-          <p className="hero-lead">AI 동료(실제 모델)가 공공 보도자료로 학과 단톡방 공지까지 다섯 단계 일을 끝냈습니다. 원자료와 대조해 틀린 문장에 빨간 줄을 긋고, 이대로 내보내도 될지 결재하세요. 틀린 곳이 없을 수도 있습니다. 끝나면 놓친 오류가 어느 단계에서 생겨 어디로 번졌는지 돌려드립니다.</p>
-          <ol className="steps" aria-label="해 볼 순서">
-            <li><b>최종 공지 읽기</b></li>
-            <li><b>틀린 문장을 눌러 빨간 줄</b></li>
-            <li><b>승인 또는 반려 결재</b></li>
-            <li className="steps-end">결과</li>
-          </ol>
-          {firstRun && <p className="hero-cta"><a className="btn btn-primary" href={`#/r/${firstRun.runId}`}>{done1 ? '결과 다시 보기' : '지금 해 보기'}</a> <span className="small muted" style={{ marginLeft: 8 }}>{done1 ? '이 판은 풀었습니다' : '로그인 없이 바로 시작합니다'}</span></p>}
-          <p className="small terms"><b>판</b> AI가 한 번 돌린 작업 기록 · <b>장부</b> 그 판의 오류 정답표(사람 검수) · <b>A등급</b> 원자료와 대조하면 누구나 같은 결론이 나는 오류</p>
+      {/* 첫 화면: 메시지 하나, 행동 하나, 그림 하나. 나머지는 스크롤하며 한 덩어리에 한 생각씩 */}
+      <section className="hero hero-first">
+        <div className="hero-copy">
+          <p className="eyebrow">AI 활용 평가를 앞둔 대학생을 위한 검수 연습</p>
+          <h1>AI가 끝낸 일,<br />어디서 틀렸을까요?</h1>
+          <p className="hero-lead">실제 AI가 다섯 단계로 만든 공지를 원자료와 대조해 틀린 곳에 빨간 줄을 긋고, 어디서 멈췄어야 했는지 돌려받습니다.</p>
+          {firstRun && <p className="hero-cta"><a className="btn btn-primary" href={`#/r/${firstRun.runId}`}>{done1 ? '결과 다시 보기' : '지금 해 보기'}</a><span className="small muted">{done1 ? '이 판은 풀었습니다' : '로그인 없이 바로'}</span></p>}
         </div>
         <figure className="hero-fig" aria-label="예시: 「자료에 없음」이 단계를 넘으며 「언제든 신청 가능」이 되는 모습">
           <HeroFigure />
-          <figcaption className="small muted">예시입니다(풀 판의 문장이 아니라, 만들며 실제로 가장 많이 본 오류 모양을 줄여 옮긴 것). 단계마다 문장만 보면 그럴듯합니다. 원자료와 대조해야 S2에서 「자료에 없음」이 「없음」으로, 다시 「언제든 가능」으로 커진 것이 보입니다.</figcaption>
+          <figcaption className="small muted">예시(풀 판의 문장 아님). 단계마다 그럴듯하지만, 원자료와 대조해야 S2에서 뜻이 뒤집힌 것이 보입니다.</figcaption>
         </figure>
+      </section>
+
+      <section className="how" aria-label="이렇게 진행됩니다">
+        <h2 className="sec-title">이렇게 진행됩니다</h2>
+        <ol className="how-steps">
+          <li><b>읽기</b><span>AI 동료가 끝낸 최종 공지부터 원자료와 한 문장씩 대조합니다.</span></li>
+          <li><b>빨간 줄과 결재</b><span>틀린 문장에 빨간 줄을 긋고, 이대로 내보낼지 승인 또는 반려합니다.</span></li>
+          <li><b>멈췄어야 할 곳</b><span>놓친 오류가 어느 단계에서 생겨 어디로 번졌는지, 다음엔 어떤 지시로 막을지 돌려받습니다.</span></li>
+        </ol>
       </section>
 
       <section aria-label="오늘의 연습">
         <h2 className="sec-title">오늘의 연습 <span className="small muted">잡기 → 막기 → 증명</span></h2>
+        <p className="small terms"><b>판</b> AI가 한 번 돌린 작업 기록 · <b>장부</b> 그 판의 오류 정답표(사람 검수) · <b>A등급</b> 원자료와 대조하면 누구나 같은 결론이 나는 오류</p>
         <div className="practice">
           <Slide as="a" from="left" fromSm="left" fromLg="left" delay={0} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
             <span className="pcard-k">잡기 · 약 10~20분</span>
@@ -95,10 +99,7 @@ export default function Home() {
 /** 첫 화면 예시 그림: 단계 레일 위로 오류 하나가 처음 생긴 단계에서 공지까지 번진다(실제 판의 정답이 아님) */
 const HERO_ROWS = [
   ['원자료', <>신청 기간은 <b>추후 공지할 예정</b>입니다.</>, 'src'],
-  ['S1 자료 추출', <>신청 기간: 자료에 없음(추후 공지)</>, 'ok'],
   ['S2 판정표', <>신청 기간 <span className="hf-bad">없음 → 상시 신청 가능</span></>, 'origin'],
-  ['S3 해석', <>기간 <span className="hf-bad">제한이 없어 여유 있게</span> 준비하면 됩니다.</>, 'spread'],
-  ['S4 팀장 보고', <><span className="hf-bad">상시 접수라 서두르지 않아도</span> 됩니다.</>, 'spread'],
   ['S5 단톡방 공지', <>📌 <span className="hf-bad">언제든 신청 가능!</span></>, 'spread'],
 ];
 const HF_TAG = { ok: ['맞음', 'hf-tag-ok'], origin: ['처음 틀림', 'hf-tag-bad'], spread: ['옮겨 적힘', 'hf-tag-spread'], src: ['', ''] };
