@@ -7,6 +7,15 @@ import { Objection } from './Result.jsx';
 
 const KIND_KO = { list: '목록', table: '표', sentences: '문장', report: '보고', lines: '짧은 줄', check: '확인(원자료 대조)' };
 const FATE = { final: '최종본에 남음', earlier: '앞 단계에만 있음', blocked: '반려로 막음', remained: '반려했지만 비슷한 문장이 남음' };
+// 지시 습관 점검(서버 lead.js habits()와 같은 규칙). 점수가 아니라 쓰는 동안 보는 체크리스트
+const HABITS = [
+  ['sourcesToLater', '뒤 단계에도 원자료를 넘김', (plan) => plan.slice(1).some((p) => p.inputs.includes('sources'))],
+  ['evidence', '근거(출처) 표시를 요구함', (_, all) => /근거|출처|\[[A-F]\]|문단|어디서/.test(all)],
+  ['verbatim', '숫자·조건을 원문 표기대로 옮기라고 함', (_, all) => /원문|그대로|표기|바꾸지/.test(all)],
+  ['date', '오늘·게시일 기준을 알려 줌', (_, all) => /오늘|날짜|기준일|게시|올리는 날|11월\s?1[0-9]일/.test(all)],
+  ['unknown', '자료에 없으면 「확인 필요」로 두라고 함', (_, all) => /확인 필요|모르면|없으면|추측|지어내|없는 내용/.test(all)],
+  ['checkStage', '확인 단계를 넣음', (plan) => plan.some((p) => p.kind === 'check')],
+];
 const STYLE_KO = { base: '기본(단계로 나눴지만 뒤 단계는 앞 결과만 받음)', rough: '대충(한 번에 맡김)', careful: '잘 맡김(모든 단계에 원자료 + 습관 지시)' };
 
 export default function Lead({ missionId }) {
@@ -50,11 +59,19 @@ export default function Lead({ missionId }) {
     const set = (i, f) => setPlan(plan.map((p, j) => (j === i ? { ...p, ...f } : p)));
     const toggle = (i, x) => set(i, { inputs: plan[i].inputs.includes(x) ? plan[i].inputs.filter((y) => y !== x) : [...plan[i].inputs, x] });
     const ready = plan.every((p) => p.instruction.trim() && p.inputs.length);
+    const all = plan.map((p) => p.instruction).join('\n');
+    const base = (i) => m.stages[i]?.instruction ?? '';
+    const fillBase = () => setPlan(plan.map((p, i) => (p.instruction.trim() ? p : { ...p, instruction: base(i) || p.instruction })));
     return (
       <main className="lead">
         <h1>{m.title} · 맡기기</h1>
         <p className="brief">{m.brief}</p>
         <p className="small">1) 일을 단계로 나누고 단계마다 무엇을 넘길지 고릅니다. 2) 단계마다 지시를 씁니다. 3) AI 동료가 실제로 일하면 결과를 원자료와 대조해 승인하거나 반려합니다(단계마다 재작업 1번). 4) 최종본에 서명하면 작업 기록을 처음 보는 다른 회사 모델 두 개가 감사합니다. 한 곳이 시간 안에 끝나지 않으면 끝난 감사만 반영하고 그렇게 표시합니다.</p>
+        <section className="todo-card" aria-label="지시 습관 점검">
+          <h2 className="todo-title">지시 습관 점검 <span className="small muted" style={{ fontWeight: 400 }}>쓰는 동안 바뀝니다 · 점수 아님</span></h2>
+          <ul className="habits" style={{ margin: '4px 0 8px', columns: 2 }}>{HABITS.map(([k, label, f]) => { const ok = f(plan, all); return <li key={k} className={ok ? 'ok' : 'no'}>{ok ? '○' : '×'} {label}</li>; })}</ul>
+          <p className="row-btns" style={{ margin: 0 }}><button type="button" className="btn small" onClick={fillBase}>빈 단계를 기본 지시로 채우기</button><span className="small muted" style={{ alignSelf: 'center' }}>기본 지시는 고정 판을 만들 때 쓴 지시입니다. 그대로 두면 고정 판과 비슷한 오류가 날 수 있습니다. 고쳐 써 보세요.</span></p>
+        </section>
         <div className="work-grid">
           <SourceDock onOpen={() => { views.current++; }}>{docs ? <SourcePanel docs={docs} onView={() => { views.current++; }} /> : <p className="muted small">원자료 불러오는 중…</p>}</SourceDock>
           <div>
