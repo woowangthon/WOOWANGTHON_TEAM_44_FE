@@ -113,7 +113,7 @@ function HeroFigure() {
             <line x1={x(i)} y1="30" x2={x(i)} y2="86" className="hf-tick" />
           </g>
         ))}
-        <rect x={x(1) - 40} y="30" width="80" height="58" rx="8" className="hf-stop" />
+        <rect x={x(1) - 40} y="30" width="80" height="58" className="hf-stop" />
         <line x1={x(1)} y1="58" x2={x(4)} y2="58" className="hf-line" />
         <circle cx={x(0)} cy="58" r="7" className="hf-okdot" />
         <circle cx={x(1)} cy="58" r="8" className="hf-origin" />

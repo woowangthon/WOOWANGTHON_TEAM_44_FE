@@ -61,7 +61,7 @@ export default function Drill() {
             <button className={`decide decide-no ${pick === 'error' ? 'on' : ''}`} aria-pressed={pick === 'error'} onClick={() => setPick('error')}>틀렸다<span>원자료와 다르거나 원자료에 없다</span></button>
           </div>
           {pick === 'error' && <label className="small">어떤 유형인가요?(선택)
-            <select value={pattern} onChange={(e) => setPattern(e.target.value)} style={{ width: '100%', fontSize: 16, padding: 8, border: '1px solid var(--line-2)', borderRadius: 6 }}>
+            <select value={pattern} onChange={(e) => setPattern(e.target.value)} style={{ width: '100%', fontSize: 16, padding: 8, border: '1px solid var(--line-2)', borderRadius: 0 }}>
               <option value="">모르겠음</option>{PATTERNS.map((p) => <option key={p}>{p}</option>)}
             </select></label>}
           <p className="row-btns"><button className="btn btn-primary" disabled={!pick || busy} onClick={submit}>{busy ? '확인 중…' : '확인'}</button></p>
