@@ -12,7 +12,7 @@ import Me from './screens/Me.jsx';
 import About from './screens/About.jsx';
 import Drill from './screens/Drill.jsx';
 
-// 주소: #/ 오늘의 연습, #/drill 짧은 연습, #/r/<판> 사수 모드, #/lead/<미션> 팀장 모드, #/patterns 실패 패턴, #/me 내 기록, #/about 만든 방법과 검증, #/review[/<판>] 만든 사람 검수
+// 주소: #/ 오늘의 연습, #/drill 짧은 연습, #/r/<판> 사수 모드, #/lead/<미션> 팀장 모드, #/patterns 습관 도감, #/me 내 실력, #/about 만든 방법과 검증, #/review[/<판>] 만든 사람 검수
 const ID = '([a-z0-9][a-z0-9.-]+)';
 const parse = () => {
   const h = location.hash.replace(/^#/, '') || '/';

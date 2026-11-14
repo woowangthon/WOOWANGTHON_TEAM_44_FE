@@ -172,7 +172,7 @@ function Verdict({ g }) {
   return <><b>{head}</b>{why}{found}</>;
 }
 
-/** 다음 행동 하나: 아직 안 푼 판이 있으면 그 판, 없으면 실패 패턴 */
+/** 다음 행동 하나: 아직 안 푼 판이 있으면 그 판, 없으면 습관 도감 */
 function NextStep({ runId }) {
   const [next, setNext] = useState(null);
   useEffect(() => {
@@ -183,8 +183,8 @@ function NextStep({ runId }) {
   }, [runId]);
   return (
     <p className="next">
-      {next ? <a className="btn btn-primary" href={`#/r/${next.runId}`}>다음 판 풀기</a> : <a className="btn btn-primary" href="#/patterns">실패 패턴 보기</a>}
-      {' '}<a href="#/">미션 목록</a> · <a href="#/me">내 기록</a>
+      {next ? <a className="btn btn-primary" href={`#/r/${next.runId}`}>다음 판 풀기</a> : <a className="btn" href="#/patterns">습관 도감 보기</a>}
+      {' '}<a href="#/">오늘의 연습</a> · <a href="#/me">내 실력</a>
     </p>
   );
 }
