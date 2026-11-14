@@ -54,6 +54,7 @@ export const api = {
   objection: (b) => req('/api/play', { action: 'objection', ...b, ...who() }),
   triage: (answerId) => req('/api/play', { action: 'triage', answerId }),
   history: () => req('/api/play', { action: 'history', deviceId: deviceId() }),
+  patterns: () => req('/api/play', { action: 'patterns', deviceId: deviceId() }),
   stats: () => req('/api/stats'),
   lead: (action, b = {}) => req('/api/lead', { action, ...b, ...who() }),
   patch: (b) => req('/api/lead', { action: 'patch', ...b, ...who() }),
