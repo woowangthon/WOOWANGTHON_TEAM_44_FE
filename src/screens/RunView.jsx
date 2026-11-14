@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, myAnswers, isMaker, modelName, fmtDate } from '../api.js';
 import { DocHead, LedgerTag } from '../ui/doc.jsx';
 import { SourcePanel, SourceDock, StageBlock, MarkEditor } from '../ui/work.jsx';
+import { TraceContext, makeTrace } from '../ui/trace.js';
 import Result from './Result.jsx';
 
 // 풀던 상태(빨간 줄·결재·시작 시각)를 이 기기에 임시로 둔다. 새로고침해도 이어서 풀 수 있게. 제출하면 지운다.
@@ -24,6 +25,8 @@ export default function RunView({ id }) {
   const views = useRef(0);
   const [, bump] = useState(0); // 원자료를 열 때 화면 숫자도 바로 바뀌게
   const t0 = useRef(Date.now());
+  const trace = useRef(null);
+  const [openStages, setOpenStages] = useState({});
   const maker = isMaker();
 
   useEffect(() => {
@@ -31,6 +34,8 @@ export default function RunView({ id }) {
     const d = loadDraft(id);
     setMarks(d?.marks ?? {}); setDecision(d?.decision ?? ''); setReason(d?.reason ?? '');
     t0.current = d?.t0 ?? Date.now(); views.current = d?.views ?? 0;
+    trace.current = makeTrace(() => t0.current, d?.trace);
+    setOpenStages({});
     api.run(id).then((d) => {
       setData(d);
       const prev = myAnswers.all()[id];
@@ -40,7 +45,13 @@ export default function RunView({ id }) {
 
   useEffect(() => {
     if (!data || done) return;
-    saveDraft(id, { marks, decision, reason, t0: t0.current, views: views.current });
+    saveDraft(id, { marks, decision, reason, t0: t0.current, views: views.current, trace: trace.current?.snapshot() });
+  }, [id, data, done, marks, decision, reason]);
+  // 원자료를 보는 것만으로는 화면이 다시 그려지지 않으므로, 이벤트가 쌓이면 가끔 draft에 함께 저장한다
+  useEffect(() => {
+    if (!data || done || !trace.current) return;
+    const iv = setInterval(() => saveDraft(id, { marks, decision, reason, t0: t0.current, views: views.current, trace: trace.current.snapshot() }), 5000);
+    return () => clearInterval(iv);
   }, [id, data, done, marks, decision, reason]);
 
   if (error) return <main><p className="error">{error}</p><a href="#/">미션 목록으로</a></main>;
@@ -54,7 +65,7 @@ export default function RunView({ id }) {
   const submit = async () => {
     setSending(true); setError('');
     try {
-      const r = await api.answer({ runId: id, marks: Object.entries(marks).map(([uid, m]) => ({ uid, ...m })), decision, reason, elapsedSec: (Date.now() - t0.current) / 1000, sourceViews: views.current });
+      const r = await api.answer({ runId: id, marks: Object.entries(marks).map(([uid, m]) => ({ uid, ...m })), decision, reason, elapsedSec: (Date.now() - t0.current) / 1000, sourceViews: views.current, trace: trace.current?.toPayload() });
       myAnswers.set(id, r.answerId);
       dropDraft(id);
       setDone({ ...r, answer: { marks: Object.entries(marks).map(([uid, m]) => ({ uid, ...m })), sourceViews: views.current } });
@@ -62,7 +73,19 @@ export default function RunView({ id }) {
     } catch (e) { setError(e.message); } finally { setSending(false); }
   };
 
+  const finals = stages.slice(-2).reverse();
+  const earlier = stages.slice(0, -2).reverse();
+  const markCount = (st) => st.units.filter((u) => marks[u.uid]);
+  const goStage = (key) => {
+    const isEarlier = earlier.some((x) => x.key === key);
+    if (isEarlier && !openStages[key]) { setOpenStages({ ...openStages, [key]: true }); trace.current?.push('stage', key); }
+    setTimeout(() => document.getElementById(isEarlier ? `es-${key}` : `st-${key}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 30);
+  };
+  const block = (st, hint) => <StageBlock key={st.key} stage={st} marks={marks} onPick={playable && !done ? (uid, quote) => setEditing({ uid, quote }) : undefined} notes={notes} hint={hint} />;
+  const choose = (d) => { setDecision(d); trace.current?.push('decide', d); };
+
   return (
+    <TraceContext.Provider value={trace.current}>
     <main className="run">
       <p className="band">
         이 작업 기록은 {fmtDate(meta.at)} <b>{modelName(meta.worker)}</b>({meta.company})가 실제로 수행한 결과입니다. 결과물은 손대지 않았습니다.
@@ -74,43 +97,49 @@ export default function RunView({ id }) {
         <section className="todo-card" aria-label="할 일">
           <h2 className="todo-title">할 일</h2>
           <ol className="todo-steps">
-            <li>아래 최종본({stages.slice(-2).reverse().map((s) => `${s.key} ${s.name}`).join(', ')})을 원자료와 한 문장씩 대조하세요.</li>
-            <li>틀린 문장을 누르면 빨간 줄을 그을 수 있습니다.</li>
+            <li>아래 최종본({finals.map((st) => `${st.key} ${st.name}`).join(', ')})을 원자료와 한 문장씩 대조하세요.</li>
+            <li>틀린 문장을 누르면 빨간 줄을 그을 수 있습니다. 확실한지 의심인지도 고릅니다.</li>
             <li>다 봤으면 맨 아래에서 승인 또는 반려를 결재하세요.</li>
           </ol>
-          <p className="todo-note">틀린 곳이 없을 수도 있습니다. 앞 단계를 펼쳐 오류가 처음 생긴 곳을 짚으면 「멈췄어야 할 곳」을 맞힌 것입니다.</p>
+          <p className="todo-note">틀린 곳이 없을 수도 있습니다. 앞 단계를 펼쳐 오류가 처음 생긴 곳을 짚으면 「멈췄어야 할 곳」을 맞힌 것입니다. 어느 원자료 문단이 화면에 보였는지는 이 판의 결과 피드백에만 씁니다.</p>
         </section>
         <p className="brief">{mission.brief}</p>
         <div className="work-grid">
           <SourceDock onOpen={() => { views.current++; bump((x) => x + 1); }}><SourcePanel docs={docs} onView={() => { views.current++; bump((x) => x + 1); }} /></SourceDock>
           <div className="work-main">
+            {/* 단계 레일(F1): 최종본 S5부터 S1까지. 내가 그은 줄이 점으로 찍힌다. 누르면 그 단계로 간다 */}
+            <nav className="rail" aria-label="단계 레일">
+              {[...finals, ...earlier].map((st, i) => (
+                <span key={st.key} style={{ display: 'contents' }}>
+                  {i > 0 && <span className="rail-arrow" aria-hidden="true">←</span>}
+                  <button type="button" className={`rail-step ${i < finals.length ? 'final' : ''}`} onClick={() => goStage(st.key)} aria-label={`${st.key} ${st.name}, 빨간 줄 ${markCount(st).length}개`}>
+                    <b>{st.key}</b><span className="rail-name">{st.name}</span>
+                    <span className="rail-dots" aria-hidden="true">{markCount(st).slice(0, 6).map((u) => <i key={u.uid} className={marks[u.uid].confidence === 'unsure' ? 'unsure' : ''} />)}</span>
+                  </button>
+                </span>
+              ))}
+            </nav>
             {/* 최종본(마지막 두 단계)부터 읽고, 이상한 곳이 있을 때만 앞 단계를 펼쳐 거슬러 올라간다. 팀장이 결과를 검토하는 순서와 같다 */}
-            {(() => {
-              const block = (s, hint) => <StageBlock key={s.key} stage={s} marks={marks} onPick={playable && !done ? (uid, quote) => setEditing({ uid, quote }) : undefined} notes={notes} hint={hint} />;
-              const finals = stages.slice(-2).reverse();
-              const earlier = stages.slice(0, -2).reverse();
-              return (<>
-                {finals.map((s, i) => block(s, i === 0 && playable && !done ? '문장을 눌러 빨간 줄' : undefined))}
-                <h3 className="earlier-title">앞 단계 <span className="small muted">이상한 문장이 보이면 펼쳐서 처음 틀린 곳을 찾으세요</span></h3>
-                {earlier.map((s) => {
-                  const n = s.units.filter((u) => marks[u.uid]).length;
-                  return (
-                    <details key={s.key} className="earlier-stage">
-                      <summary><b>{s.key}</b> {s.name} <span className="small muted">· 단위 {s.units.length}개{n ? ` · 빨간 줄 ${n}` : ''}</span></summary>
-                      {block(s)}
-                    </details>
-                  );
-                })}
-              </>);
-            })()}
+            {finals.map((st, i) => block(st, i === 0 && playable && !done ? '문장을 눌러 빨간 줄' : undefined))}
+            <h3 className="earlier-title">앞 단계 <span className="small muted">이상한 문장이 보이면 펼쳐서 처음 틀린 곳을 찾으세요</span></h3>
+            {earlier.map((st) => {
+              const n = markCount(st).length;
+              return (
+                <details key={st.key} id={`es-${st.key}`} className="earlier-stage" open={!!openStages[st.key]}
+                  onToggle={(e) => { const o = e.currentTarget.open; if (o !== !!openStages[st.key]) { setOpenStages({ ...openStages, [st.key]: o }); if (o) trace.current?.push('stage', st.key); } }}>
+                  <summary><b>{st.key}</b> {st.name} <span className="small muted">· 단위 {st.units.length}개{n ? ` · 빨간 줄 ${n}` : ''}</span></summary>
+                  {block(st)}
+                </details>
+              );
+            })}
           </div>
         </div>
       </div>
 
       {editing && (
         <MarkEditor key={`${editing.uid}:${editing.quote}`} uid={editing.uid} quote={editing.quote} text={unitText(editing.uid)} mark={marks[editing.uid]}
-          onSave={(m) => { setMarks({ ...marks, [editing.uid]: m }); setEditing(null); window.getSelection()?.removeAllRanges(); }}
-          onRemove={() => { const n = { ...marks }; delete n[editing.uid]; setMarks(n); setEditing(null); }}
+          onSave={(m) => { setMarks({ ...marks, [editing.uid]: m }); trace.current?.push('mark', editing.uid); setEditing(null); window.getSelection()?.removeAllRanges(); }}
+          onRemove={() => { const n = { ...marks }; delete n[editing.uid]; setMarks(n); trace.current?.push('unmark', editing.uid); setEditing(null); }}
           onClose={() => setEditing(null)} />
       )}
 
@@ -118,22 +147,23 @@ export default function RunView({ id }) {
         <section className="decision sheet" aria-label="결재">
           <p className="decision-q">빨간 줄 {Object.keys(marks).length}개를 그었습니다. 최종본을 이대로 내보내도 될까요?</p>
           {!playable && <p className="error">이 판은 아직 사람 검수 전이라 채점할 수 없습니다.</p>}
-          <div className="decision-btns">
-            <button className={`btn stamp-btn stamp-btn-ok ${decision === 'approve' ? 'on' : ''}`} onClick={() => setDecision('approve')} disabled={!playable}><span>승인</span></button>
-            <button className={`btn stamp-btn stamp-btn-no ${decision === 'reject' ? 'on' : ''}`} onClick={() => setDecision('reject')} disabled={!playable}><span>반려</span></button>
+          <div className="decision-btns" role="group" aria-label="결재">
+            <button className={`decide decide-ok ${decision === 'approve' ? 'on' : ''}`} aria-pressed={decision === 'approve'} onClick={() => choose('approve')} disabled={!playable}>승인<span>이대로 내보냅니다</span></button>
+            <button className={`decide decide-no ${decision === 'reject' ? 'on' : ''}`} aria-pressed={decision === 'reject'} onClick={() => choose('reject')} disabled={!playable}>반려<span>고쳐 오게 돌려보냅니다</span></button>
           </div>
           {decision === 'reject' && (
-            <label className="small">반려 사유(AI 동료에게 돌려보낼 말)
+            <label>반려 사유(AI 동료에게 돌려보낼 말)
               <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} placeholder="예: S2 판정표에서 하이테크과정 나이 조건이 원자료와 다릅니다. 원자료 A를 다시 대조해 고쳐 주세요." />
             </label>
           )}
           {error && <p className="error">{error}</p>}
           <button className="btn btn-primary" disabled={!playable || !decision || sending || (decision === 'reject' && reason.trim().length < 4)} onClick={submit}>{sending ? '보내는 중…' : '결재하고 결과 보기'}</button>
           {playable && (!decision || (decision === 'reject' && reason.trim().length < 4)) && (
-            <p className="decision-why small muted" aria-live="polite">{!decision ? '승인 또는 반려를 먼저 고르세요.' : '반려 사유를 4자 이상 적어 주세요.'}</p>
+            <p className="decision-why" aria-live="polite">{!decision ? '승인 또는 반려를 먼저 고르세요.' : '반려 사유를 4자 이상 적어 주세요.'}</p>
           )}
         </section>
       )}
     </main>
+    </TraceContext.Provider>
   );
 }

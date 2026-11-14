@@ -1,12 +1,14 @@
 // 작업 기록 보기 부품: 원자료 패널, 단계별 산출물(단위마다 누를 수 있음), 표시 편집
 import { useEffect, useRef, useState } from 'react';
+import { useTraceCtx, VIEW_MIN_MS } from './trace.js';
 
 /** 떠 있는 창: 열리면 첫 입력·버튼으로 초점, Esc로 닫기, 닫으면 원래 자리로 초점 */
 export function useDialog(onClose) {
   const ref = useRef(null);
   useEffect(() => {
     const back = document.activeElement;
-    ref.current?.querySelector('input, textarea, select, button')?.focus();
+    // 입력칸에 바로 초점을 주면 휴대폰에서 키보드가 올라와 화면을 가린다. 창의 첫 버튼에 둔다
+    (ref.current?.querySelector('[data-autofocus]') ?? ref.current?.querySelector('button'))?.focus();
     const on = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose?.(); } };
     window.addEventListener('keydown', on);
     return () => { window.removeEventListener('keydown', on); if (back && document.contains(back)) back.focus?.(); };
@@ -22,7 +24,10 @@ export const inputsKo = (inputs) => inputs.map((x) => INPUT_KO[x] ?? x).join(' �
  *  openKey가 바뀌면 연다(결과 화면에서 근거 칸을 눌렀을 때). onOpen은 서랍을 열 때 불린다(원자료 대조 횟수) */
 export function SourceDock({ children, openKey, onOpen }) {
   const [open, setOpen] = useState(false);
+  const trace = useTraceCtx();
+  const first = useRef(true);
   useEffect(() => { if (openKey) setOpen(true); }, [openKey]);
+  useEffect(() => { if (first.current) { first.current = false; return; } trace?.push(open ? 'open' : 'close'); if (open) trace?.engage(); }, [open]);
   useEffect(() => {
     if (!open) return;
     const on = (e) => { if (e.key === 'Escape') setOpen(false); };
@@ -45,11 +50,46 @@ export function SourcePanel({ docs, highlight = [], onView, compact }) {
   const [tab, setTab] = useState(first && docs[first] ? first : keys[0]);
   const d = docs[tab];
   const hl = new Set(highlight);
+  const trace = useTraceCtx();
+  const root = useRef(null);
+  // 강조 문단이 바뀌면 그 문서로 넘기고 문단으로 스크롤
+  useEffect(() => {
+    if (first && docs[first] && first !== tab) setTab(first);
+    if (highlight[0]) setTimeout(() => document.getElementById(`p-${highlight[0]}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60);
+  }, [highlight.join(',')]);
+  // 문단이 60% 이상 보인 시간을 잰다. 패널을 한 번이라도 만지기 전(노트북에서 늘 펼쳐진 상태)과 휴대폰 서랍이 닫혀 있을 때는 세지 않는다
+  useEffect(() => {
+    if (!trace || !root.current || typeof IntersectionObserver === 'undefined') return;
+    const since = new Map();
+    const active = () => trace.engaged && !document.hidden && (window.innerWidth > 820 || !!root.current?.closest('.work-src.open'));
+    const flush = (pid) => { const t = since.get(pid); if (t == null) return; since.delete(pid); const ms = Date.now() - t; if (ms >= VIEW_MIN_MS) trace.push('view', pid, ms); };
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        const pid = e.target.dataset.pid;
+        if (e.isIntersecting && e.intersectionRatio >= 0.6) { if (active() && !since.has(pid)) since.set(pid, Date.now()); }
+        else flush(pid);
+      }
+    }, { threshold: [0, 0.6, 1] });
+    root.current.querySelectorAll('[data-pid]').forEach((el) => io.observe(el));
+    // 만진 뒤에 이미 보이고 있던 문단도 재기 시작한다
+    const tick = setInterval(() => {
+      if (!active()) { [...since.keys()].forEach(flush); return; }
+      root.current?.querySelectorAll('[data-pid]').forEach((el) => {
+        const r = el.getBoundingClientRect(); const vh = window.innerHeight;
+        const vis = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0)) / Math.max(1, r.height);
+        if (vis >= 0.6 && !since.has(el.dataset.pid)) since.set(el.dataset.pid, Date.now());
+      });
+    }, 1000);
+    const onHide = () => { if (document.hidden) [...since.keys()].forEach(flush); };
+    document.addEventListener('visibilitychange', onHide);
+    return () => { io.disconnect(); clearInterval(tick); document.removeEventListener('visibilitychange', onHide); [...since.keys()].forEach(flush); };
+  }, [trace, tab]);
+  const engage = () => trace?.engage();
   return (
-    <section className={`src-panel ${compact ? 'src-compact' : ''}`} aria-label="원자료">
+    <section ref={root} className={`src-panel ${compact ? 'src-compact' : ''}`} aria-label="원자료" onMouseEnter={engage} onScroll={engage} onTouchStart={engage}>
       <div className="src-tabs" role="tablist">
         {keys.map((k) => (
-          <button key={k} role="tab" aria-selected={k === tab} className={k === tab ? 'on' : ''} onClick={() => { setTab(k); onView?.(); }} title={docs[k].title} aria-label={`원자료 ${k}: ${docs[k].title}`}>
+          <button key={k} role="tab" aria-selected={k === tab} className={k === tab ? 'on' : ''} onClick={() => { setTab(k); onView?.(); trace?.engage(); trace?.push('tab', k); }} title={docs[k].title} aria-label={`원자료 ${k}: ${docs[k].title}`}>
             {k}
           </button>
         ))}
@@ -57,7 +97,7 @@ export function SourcePanel({ docs, highlight = [], onView, compact }) {
       <h3 className="src-title">[{d.key}] {d.title}</h3>
       <ol className="src-paras">
         {d.paragraphs.map((p) => (
-          <li key={p.pid} id={`p-${p.pid}`} className={hl.has(p.pid) ? 'hl' : ''} onClick={() => onView?.()}>
+          <li key={p.pid} id={`p-${p.pid}`} data-pid={p.pid} className={hl.has(p.pid) ? 'hl' : ''} onClick={() => { onView?.(); trace?.engage(); trace?.push('tap', p.pid); }}>
             <span className="pid">{p.pid}</span>
             <span className="p-text">{p.text}</span>
           </li>
@@ -74,7 +114,7 @@ export function SourcePanel({ docs, highlight = [], onView, compact }) {
 const cls = (uid, marks, review, text) => {
   const c = [];
   // 구절을 골라 그은 줄은 그 구절에만 긋는다. 구절이 없거나 문장에서 못 찾으면 문장 전체
-  if (marks?.[uid]) c.push(phraseOf(marks[uid], text) ? 'marked-phrase' : 'marked');
+  if (marks?.[uid]) { c.push(phraseOf(marks[uid], text) ? 'marked-phrase' : 'marked'); if (marks[uid].confidence === 'unsure') c.push('unsure'); }
   if (review?.[uid]) c.push(`rv-${review[uid]}`);
   return c.join(' ');
 };
@@ -158,28 +198,37 @@ export function StageBlock({ stage, onPick, marks, review, notes, hint }) {
   );
 }
 
-/** 단위를 눌렀을 때 뜨는 표시 편집 */
+/** 단위를 눌렀을 때 뜨는 빨간 줄 창. 확실/의심(F3)과 「처음 생긴 곳」을 먼저, 구절·패턴·메모는 접어 둔다 */
 export function MarkEditor({ uid, text, mark, quote: picked, onSave, onRemove, onClose }) {
   const [quote, setQuote] = useState(picked || mark?.quote || '');
   const [pattern, setPattern] = useState(mark?.pattern ?? '');
   const [origin, setOrigin] = useState(!!mark?.origin);
   const [note, setNote] = useState(mark?.note ?? '');
+  const [confidence, setConfidence] = useState(mark?.confidence ?? 'sure');
   const ref = useDialog(onClose);
+  const bad = quote && !text.replace(/ \| /g, ' ').includes(quote) && !text.includes(quote);
   return (
     <div className="mark-editor" role="dialog" aria-modal="true" aria-label={`${uid} 빨간 줄`} ref={ref}>
-      <p className="small"><b>{uid}</b> {withPhrase(text, quote && text.includes(quote) ? quote : '')}</p>
-      <label className="small">틀린 구절(문장에서 드래그하면 채워집니다. 비우면 문장 전체에 줄)<input value={quote} maxLength={300} onChange={(e) => setQuote(e.target.value)} placeholder="예: 별도 마감일 없음" /></label>
-      {quote && !text.replace(/ \| /g, ' ').includes(quote) && !text.includes(quote) && <p className="small error">이 구절이 문장에 그대로 없습니다. 문장에서 드래그해 고르거나 비워 두세요.</p>}
-      <label className="small">패턴(고르지 않아도 됩니다)
-        <select value={pattern} onChange={(e) => setPattern(e.target.value)}>
-          <option value="">모르겠음</option>
-          {PATTERNS.map((p) => <option key={p}>{p}</option>)}
-        </select>
-      </label>
-      <label className="small check"><input type="checkbox" checked={origin} onChange={(e) => setOrigin(e.target.checked)} /> 이 오류는 여기서 처음 생겼다</label>
-      <label className="small">메모<textarea className="note-box" rows={3} value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} placeholder="원자료와 무엇이 다른지" /></label>
+      <p className="small"><span className="mono">{uid}</span> <span style={{ fontFamily: 'var(--serif)' }}>{withPhrase(text, quote && text.includes(quote) ? quote : '')}</span></p>
+      <div className="conf" role="group" aria-label="얼마나 확실한가요">
+        <button type="button" data-autofocus className={confidence === 'sure' ? 'on' : ''} aria-pressed={confidence === 'sure'} onClick={() => setConfidence('sure')}>확실히 틀림<span>원자료와 대조해 확인했다</span></button>
+        <button type="button" className={confidence === 'unsure' ? 'on' : ''} aria-pressed={confidence === 'unsure'} onClick={() => setConfidence('unsure')}>의심됨<span>확인이 더 필요하다</span></button>
+      </div>
+      <label className="check"><input type="checkbox" checked={origin} onChange={(e) => setOrigin(e.target.checked)} /> 이 오류는 여기서 처음 생겼다</label>
+      <details className="mark-more" open={!!(mark?.note || mark?.pattern || picked || mark?.quote)}>
+        <summary className="small">구절·패턴·메모 더 적기(선택)</summary>
+        <label className="small">틀린 구절(비우면 문장 전체. 노트북에서는 문장 일부를 끌어 고를 수 있습니다)<input value={quote} maxLength={300} onChange={(e) => setQuote(e.target.value)} placeholder="예: 별도 마감일 없음" /></label>
+        {bad && <p className="small error">이 구절이 문장에 그대로 없습니다. 고쳐 쓰거나 비워 두세요.</p>}
+        <label className="small">패턴
+          <select value={pattern} onChange={(e) => setPattern(e.target.value)}>
+            <option value="">모르겠음</option>
+            {PATTERNS.map((p) => <option key={p}>{p}</option>)}
+          </select>
+        </label>
+        <label className="small">메모<textarea className="note-box" rows={2} value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} placeholder="원자료와 무엇이 다른지" /></label>
+      </details>
       <div className="row-btns">
-        <button className="btn btn-primary" onClick={() => onSave({ pattern, origin, note, ...(quote.trim() ? { quote: quote.trim() } : {}) })}>빨간 줄 긋기</button>
+        <button className="btn btn-primary" onClick={() => onSave({ pattern, origin, note, confidence, ...(quote.trim() ? { quote: quote.trim() } : {}) })}>빨간 줄 긋기</button>
         {mark && <button className="btn" onClick={onRemove}>지우기</button>}
         <button className="btn" onClick={onClose}>닫기</button>
       </div>
