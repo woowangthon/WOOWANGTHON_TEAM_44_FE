@@ -22,7 +22,7 @@ export default function Patterns() {
           {p.lockedExamples > 0 && <p className="small notice">이 유형의 실제 예문 {p.lockedExamples}개는 {p.lockedRuns.map((r) => <a key={r} href={`#/r/${r}`}>그 판</a>)}을 결재하면 열립니다.</p>}
           {p.examples.map((e, i) => (
             <div key={i} className="example">
-              <p>「{e.wrongText}」 <span className="small muted">({modelName(e.worker)} 판 {e.origin}{e.spread.length ? ` → ${e.spread.join(' → ')}` : ''})</span></p>
+              <p>{e.wrongText ? `「${e.wrongText}」` : <span className="muted">(틀린 문장이 아니라 빠뜨린 내용)</span>} <span className="small muted">({modelName(e.worker)} 판 {e.origin}{e.spread.length ? ` → ${e.spread.join(' → ')}` : ''})</span></p>
               <p className="small">{e.why}</p>
               {e.prevent && <p className="small"><b>막는 지시:</b> {e.prevent}</p>}
               <a className="small" href={`#/r/${e.runId}`}>이 판 검수해 보기</a>

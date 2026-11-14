@@ -22,10 +22,10 @@ export default function Me() {
       <section className="sheet" aria-label="오류 유형별 숙련도">
         <h2 style={{ marginTop: 0 }}>오류 유형별로 찾은 정도</h2>
         {skill?.patterns?.length ? (<>
-          <ul className="skill-list">{[...skill.patterns].sort((a, b) => a.mastery - b.mastery).map((p) => (
-            <li key={p.pattern}><span>{p.pattern}</span><span className="skill-bar" aria-hidden="true"><span style={{ width: `${Math.round(p.mastery * 100)}%` }} /></span><span className="skill-n">찾음 {p.found}/{p.n}{p.early ? ' · 아직 이름' : ''}</span></li>
+          <ul className="skill-list">{[...skill.patterns].sort((a, b) => (a.early - b.early) || (a.mastery - b.mastery)).map((p) => (
+            <li key={p.pattern} className={p.early ? 'early' : undefined}><span>{p.pattern}</span><span className="skill-bar" aria-hidden="true"><span style={{ width: `${Math.round(p.mastery * 100)}%` }} /></span><span className="skill-n">찾음 {p.found}/{p.n}{p.early ? ' · 아직 이름' : ''}</span></li>
           ))}</ul>
-          <p className="small muted">막대 = (찾음 + 1) ÷ (만난 수 + 2). 처음엔 절반에서 시작해 판이 쌓일수록 실제 비율에 가까워집니다. {skill.runs}판 기준, 최신 사람 검수 장부로 다시 셉니다.</p>
+          <p className="small muted">막대 = (찾음 + 1) ÷ (만난 수 + 2). 처음엔 절반에서 시작해 판이 쌓일수록 실제 비율에 가까워집니다. 3번 미만 만난 유형은 회색 막대로 둡니다. {skill.runs}판 기준, 최신 사람 검수 장부로 다시 셉니다.</p>
           {(() => { const weak = [...skill.patterns].filter((p) => !p.early).sort((a, b) => a.mastery - b.mastery)[0]; return weak ? <p>다음 추천: <b>{weak.pattern}</b>이 가장 약합니다. <a href="#/patterns">습관 도감</a>에서 이 유형의 확인 습관을 보고, <a href="#/drill">짧은 연습</a>으로 이어 가세요.</p> : <p className="small">아직 판단하기 이릅니다(유형마다 3번 이상 만나야 추천합니다).</p>; })()}
         </>) : <p className="muted">아직 판을 풀지 않았습니다. <a href="#/">오늘의 연습</a>에서 시작하세요.</p>}
       </section>

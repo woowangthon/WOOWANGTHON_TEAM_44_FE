@@ -22,7 +22,7 @@ export function Header({ maker, page }) {
         <a href="#/drill" aria-current={cur('drill')}>짧은 연습</a>
         <a href="#/patterns" aria-current={cur('patterns')}>습관 도감</a>
         <a href="#/me" aria-current={cur('me')}>내 실력</a>
-        <a href="#/about" aria-current={cur('about')}>만든 방법과 검증</a>
+        <a href="#/about" aria-current={cur('about')}>만든 방법<span className="nav-long">과 검증</span></a>
       </nav>
     </header>
   );
