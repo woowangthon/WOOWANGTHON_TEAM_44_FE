@@ -292,7 +292,7 @@ function Provenance({ it, L }) {
   </>);
 }
 
-const PV = { blocked: ['막음', 'blocked', '이 오류가 다시 나오지 않았습니다.'], remained: ['남음', 'remained', '같은 오류가 글자 그대로 또는 말을 바꿔 남았습니다.'], new: ['새 오류', 'new', '이 오류는 막았지만 다른 오류가 생겼습니다.'] };
+const PV = { blocked: ['막음', 'blocked', '이 오류가 다시 나오지 않았습니다.'], remained: ['남음', 'remained', '같은 오류가 글자 그대로 또는 말을 바꿔 남았습니다.'], new: ['새 오류', 'new', '이 오류는 막았지만 다른 오류가 생겼습니다.'], unjudged: ['판정 못 함', 'unjudged', '틀린 구절이 없는 오류인데 감사가 끝나지 않아 판정하지 못했습니다. 다시 한 결과를 직접 원자료와 대조해 보세요.'] };
 /** 막아 보기(F6): 놓친 오류가 생긴 단계 하나만 지시를 고쳐 실제로 다시 시킨다 */
 function Patch({ runId, it, stage }) {
   const [open, setOpen] = useState(false);

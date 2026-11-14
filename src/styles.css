@@ -444,7 +444,7 @@ button.pm-row:hover, button.pm-row.on { background: var(--bg-2); }
 .patch textarea { width: 100%; font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 0; background: #fff; }
 .patch-out { margin-top: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 0; padding: 10px 12px; }
 .patch-verdict { font-weight: 700; }
-.patch-verdict.blocked { color: var(--green); } .patch-verdict.remained { color: var(--red); } .patch-verdict.new { color: var(--amber); }
+.patch-verdict.blocked { color: var(--green); } .patch-verdict.remained { color: var(--red); } .patch-verdict.new { color: var(--amber); } .patch-verdict.unjudged { color: var(--ink-2); }
 
 /* ---------- 검수 화면(만든 사람) ---------- */
 .queue-list { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 10px; }
