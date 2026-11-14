@@ -34,9 +34,9 @@ export default function Home() {
           {firstRun && <p className="hero-cta"><a className="btn btn-primary" href={`#/r/${firstRun.runId}`}>{done1 ? '결과 다시 보기' : '지금 해 보기'}</a> <span className="small muted" style={{ marginLeft: 8 }}>{done1 ? '이 판은 풀었습니다' : '로그인 없이 바로 시작합니다'}</span></p>}
           <p className="small terms"><b>판</b> AI가 한 번 돌린 작업 기록 · <b>장부</b> 그 판의 오류 정답표(사람 검수) · <b>A등급</b> 원자료와 대조하면 누구나 같은 결론이 나는 오류</p>
         </div>
-        <figure className="hero-fig" aria-label="예시: 오류가 단계를 따라 번지는 모습">
+        <figure className="hero-fig" aria-label="예시: 「자료에 없음」이 단계를 넘으며 「언제든 신청 가능」이 되는 모습">
           <HeroFigure />
-          <figcaption className="small muted">예시 그림입니다(풀 판의 정답이 아님). 만들며 실제로 본 오류 모양: 원자료의 「경력 보유자 가운데 39세 이하」가 다음 단계에서 「39세 이하 경력자」가 되어 대상 조건이 바뀌는 식이었습니다. 이런 오류는 숫자를 대조해서는 보이지 않고, 뒤 단계로 그대로 옮겨 적힙니다.</figcaption>
+          <figcaption className="small muted">예시입니다(풀 판의 문장이 아니라, 만들며 실제로 가장 많이 본 오류 모양을 줄여 옮긴 것). 단계마다 문장만 보면 그럴듯합니다. 원자료와 대조해야 S2에서 「자료에 없음」이 「없음」으로, 다시 「언제든 가능」으로 커진 것이 보입니다.</figcaption>
         </figure>
       </section>
 
@@ -92,31 +92,44 @@ export default function Home() {
 }
 
 /** 첫 화면 예시 그림: 단계 레일 위로 오류 하나가 처음 생긴 단계에서 공지까지 번진다(실제 판의 정답이 아님) */
+const HERO_ROWS = [
+  ['원자료', <>신청 기간은 <b>추후 공지할 예정</b>입니다.</>, 'src'],
+  ['S1 자료 추출', <>신청 기간: 자료에 없음(추후 공지)</>, 'ok'],
+  ['S2 판정표', <>신청 기간 <span className="hf-bad">없음 → 상시 신청 가능</span></>, 'origin'],
+  ['S3 해석', <>기간 <span className="hf-bad">제한이 없어 여유 있게</span> 준비하면 됩니다.</>, 'spread'],
+  ['S4 팀장 보고', <><span className="hf-bad">상시 접수라 서두르지 않아도</span> 됩니다.</>, 'spread'],
+  ['S5 단톡방 공지', <>📌 <span className="hf-bad">언제든 신청 가능!</span></>, 'spread'],
+];
+const HF_TAG = { ok: ['맞음', 'hf-tag-ok'], origin: ['처음 틀림', 'hf-tag-bad'], spread: ['옮겨 적힘', 'hf-tag-spread'], src: ['', ''] };
 function HeroFigure() {
-  const st = [['S1', '자료 추출'], ['S2', '판정표'], ['S3', '해석'], ['S4', '팀장 보고'], ['S5', '단톡방 공지']];
+  const st = ['S1', 'S2', 'S3', 'S4', 'S5'];
   const x = (i) => 40 + i * 110;
   return (
-    <svg viewBox="0 0 520 250" role="img" aria-label="S2에서 생긴 조건 오류가 S3·S4·S5로 옮겨 적힌 예시" className="hero-svg">
-      <rect x="0" y="0" width="520" height="250" rx="12" className="hf-bg" />
-      {st.map(([k, n], i) => (
-        <g key={k}>
-          <text x={x(i)} y="34" className="hf-k" textAnchor="middle">{k}</text>
-          <text x={x(i)} y="52" className="hf-n" textAnchor="middle">{n}</text>
-          <line x1={x(i)} y1="64" x2={x(i)} y2="150" className="hf-tick" />
-        </g>
-      ))}
-      <rect x={x(1) - 46} y="62" width="92" height="92" rx="8" className="hf-stop" />
-      <line x1={x(1)} y1="104" x2={x(4)} y2="104" className="hf-line" />
-      <circle cx={x(1)} cy="104" r="8" className="hf-origin" />
-      {[2, 3, 4].map((i) => <circle key={i} cx={x(i)} cy="104" r="7" className="hf-spread" />)}
-      <text x={x(1)} y="140" className="hf-stoptext" textAnchor="middle">멈췄어야 할 곳</text>
-      <g transform="translate(24,172)">
-        <text x="0" y="16" className="hf-src">원자료</text>
-        <text x="64" y="16" className="hf-txt">… 경력 보유자 가운데 39세 이하를 대상으로 …</text>
-        <text x="0" y="48" className="hf-src">S2</text>
-        <text x="64" y="48" className="hf-txt hf-ai">39세 이하 <tspan className="hf-wavy">경력자</tspan>이면 지원 가능</text>
-      </g>
-    </svg>
+    <div className="hero-fig-box">
+      <svg viewBox="0 0 520 96" role="img" aria-label="S2에서 처음 틀리고 S3·S4·S5로 옮겨 적힌 오류 하나" className="hero-svg">
+        {st.map((k, i) => (
+          <g key={k}>
+            <text x={x(i)} y="20" className="hf-k" textAnchor="middle">{k}</text>
+            <line x1={x(i)} y1="30" x2={x(i)} y2="86" className="hf-tick" />
+          </g>
+        ))}
+        <rect x={x(1) - 40} y="30" width="80" height="58" rx="8" className="hf-stop" />
+        <line x1={x(1)} y1="58" x2={x(4)} y2="58" className="hf-line" />
+        <circle cx={x(0)} cy="58" r="7" className="hf-okdot" />
+        <circle cx={x(1)} cy="58" r="8" className="hf-origin" />
+        {[2, 3, 4].map((i) => <circle key={i} cx={x(i)} cy="58" r="7" className="hf-spread" />)}
+        <text x={x(1)} y="82" className="hf-stoptext" textAnchor="middle">멈췄어야 할 곳</text>
+      </svg>
+      <ol className="hf-rows">
+        {HERO_ROWS.map(([label, text, kind]) => (
+          <li key={label} className={`hf-row hf-${kind}`}>
+            <span className="hf-label">{label}</span>
+            <span className="hf-text">{text}</span>
+            {HF_TAG[kind][0] && <span className={`hf-tag ${HF_TAG[kind][1]}`}>{HF_TAG[kind][0]}</span>}
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 

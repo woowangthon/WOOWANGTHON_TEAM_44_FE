@@ -162,20 +162,27 @@ p { margin: 0.5em 0; }
 
 /* 첫 화면 예시 그림과 오늘의 연습 카드 */
 .hero-fig { margin: 0; }
+.hero-fig-box { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 8px; }
 .hero-svg { width: 100%; height: auto; display: block; }
-.hf-bg { fill: var(--bg); stroke: var(--line); }
 .hf-k { font-family: var(--mono); font-size: 13px; font-weight: 700; fill: var(--ink); }
-.hf-n { font-size: 11px; fill: var(--ink-3); }
 .hf-tick { stroke: var(--line); stroke-width: 1; }
 .hf-stop { fill: var(--red-bg); }
 .hf-line { stroke: var(--red); stroke-width: 3.5; stroke-linecap: round; }
+.hf-okdot { fill: var(--green); }
 .hf-origin { fill: var(--red); }
 .hf-spread { fill: #fff; stroke: var(--red); stroke-width: 3; }
 .hf-stoptext { font-size: 11px; font-weight: 700; fill: var(--red); }
-.hf-src { font-family: var(--mono); font-size: 12px; fill: var(--ink-3); }
-.hf-txt { font-family: var(--serif); font-size: 14px; fill: var(--ink); }
-.hf-wavy { text-decoration: underline wavy var(--red); fill: var(--red); }
-.sec-title { margin-top: 1.4em; }
+.hf-rows { list-style: none; margin: 8px 0 4px; padding: 0; }
+.hf-row { display: grid; grid-template-columns: 6.6em 1fr auto; gap: 10px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--line); }
+.hf-label { font-size: var(--fs-13); color: var(--ink-3); white-space: nowrap; }
+.hf-text { font-family: var(--serif); font-size: var(--fs-15); line-height: 1.5; }
+.hf-src .hf-text { font-family: var(--sans); }
+.hf-src .hf-label { color: var(--ink); font-weight: 700; }
+.hf-bad { color: var(--red); text-decoration: underline wavy var(--red); text-underline-offset: 4px; }
+.hf-tag { font-size: 0.72rem; font-weight: 700; padding: 1px 7px; border-radius: 99px; white-space: nowrap; border: 1px solid; }
+.hf-tag-ok { color: var(--green); border-color: #b9dcc5; background: var(--green-bg); }
+.hf-tag-bad { color: #fff; background: var(--red); border-color: var(--red); }
+.hf-tag-spread { color: var(--red); border-color: #f1b7c1; background: var(--red-bg); }
 .practice { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .pcard { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; text-decoration: none; color: var(--ink); }
 .pcard:hover { border-color: var(--navy); box-shadow: 0 0 0 3px var(--navy-bg); }
@@ -183,6 +190,7 @@ p { margin: 0.5em 0; }
 .pcard span:last-child { font-size: var(--fs-13); color: var(--ink-2); line-height: 1.6; }
 .pcard-k { font-size: 0.75rem; font-weight: 700; color: var(--navy-2); letter-spacing: 0.02em; }
 .hero-side.two { grid-template-columns: 1fr 1fr; margin-top: 16px; }
+.sec-title { margin-top: 1.4em; }
 
 /* ---------- 작업 화면 ---------- */
 .todo-card { border: 1.5px solid var(--navy); border-radius: 10px; background: var(--navy-bg); padding: 14px 18px; margin: 4px 0 16px; color: var(--ink); }
@@ -522,6 +530,8 @@ button.pm-row:hover, button.pm-row.on { background: var(--bg-2); }
   .skill-list .skill-bar { grid-column: 1 / -1; grid-row: 2; }
   .drill-choices, .decision-btns { grid-template-columns: 1fr; }
   .practice, .hero-side.two { grid-template-columns: 1fr; }
+  .hf-row { grid-template-columns: 1fr auto; }
+  .hf-text { grid-column: 1 / -1; grid-row: 2; }
 }
 
 /* 팀장 모드 작업 모델 고르기는 내용 폭만 */
