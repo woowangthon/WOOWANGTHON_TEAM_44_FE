@@ -155,7 +155,7 @@ export default function Result({ run, done }) {
       {ob && <Objection runId={run.meta.runId} answerId={answerId} ob={ob} items={items} onClose={() => setOb(null)} />}
       <Slide as="section" from="up" className="sheet" style={{ marginTop: 16 }} aria-label="이어서 연습">
         <h2 style={{ marginTop: 0 }}>이어서 연습</h2>
-        <p>이 판의 문장으로 「맞다 / 틀렸다」를 고르는 짧은 연습입니다. 하루 3문항, 1분 안팎입니다.</p>
+        <p>이 판의 문장으로 「맞다 / 틀렸다」를 고르는 짧은 연습입니다. 하루 3문항입니다.</p>
         <p><a className="btn btn-primary" href={`#/drill`}>짧은 연습 3문항</a></p>
       </Slide>
       <NextStep runId={meta.runId} />
