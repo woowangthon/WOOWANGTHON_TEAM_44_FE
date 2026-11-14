@@ -21,13 +21,13 @@ export default function Home() {
   const done1 = firstRun && solved[firstRun.runId];
   return (
     <main>
-      {/* 첫 화면: 메시지 하나, 행동 하나, 그림 하나. 나머지는 스크롤하며 한 덩어리에 한 생각씩 */}
+      {/* 첫 화면: 메시지 하나, 행동 하나, 그림 하나. 아래로는 왜 해 봐야 하나 → 한 판에서 얻는 것 → 시작 → 믿을 수 있는 이유 → 미션 순서로, 읽다 멈춘 곳에서 바로 시작할 수 있게 */}
       <section className="hero hero-first">
         <div className="hero-copy">
           <p className="eyebrow">AI 활용 평가를 앞둔 대학생을 위한 검수 연습</p>
           <h1>AI가 끝낸 일,<br />어디서 틀렸을까요?</h1>
-          <p className="hero-lead">실제 AI가 다섯 단계로 만든 공지를 원자료와 대조해 틀린 곳에 빨간 줄을 긋고, 어디서 멈췄어야 했는지 돌려받습니다.</p>
-          {firstRun && <p className="hero-cta"><a className="btn btn-primary" href={`#/r/${firstRun.runId}`}>{done1 ? '결과 다시 보기' : '지금 해 보기'}</a><span className="small muted">{done1 ? '이 판은 풀었습니다' : '로그인 없이 바로'}</span></p>}
+          <p className="hero-lead">실제 AI가 다섯 단계로 만든 공지를 원자료와 대조해 틀린 곳에 빨간 줄을 긋고, 어디서 멈췄어야 했는지 돌려받습니다. 가입 없이 바로 시작합니다.</p>
+          {firstRun && <p className="hero-cta"><StartButton run={firstRun} done={done1} /></p>}
         </div>
         <figure className="hero-fig" aria-label="예시: 「자료에 없음」이 단계를 넘으며 「언제든 신청 가능」이 되는 모습">
           <HeroFigure />
@@ -35,52 +35,66 @@ export default function Home() {
         </figure>
       </section>
 
-      <section className="how" aria-label="이렇게 진행됩니다">
-        <h2 className="sec-title">이렇게 진행됩니다</h2>
-        <ol className="how-steps">
-          <li><b>읽기</b><span>AI 동료가 끝낸 최종 공지부터 원자료와 한 문장씩 대조합니다.</span></li>
-          <li><b>빨간 줄과 결재</b><span>틀린 문장에 빨간 줄을 긋고, 이대로 내보낼지 승인 또는 반려합니다.</span></li>
-          <li><b>멈췄어야 할 곳</b><span>놓친 오류가 어느 단계에서 생겨 어디로 번졌는지, 다음엔 어떤 지시로 막을지 돌려받습니다.</span></li>
-        </ol>
-      </section>
-
-      <section aria-label="오늘의 연습">
-        <h2 className="sec-title">오늘의 연습 <span className="small muted">잡기 → 막기 → 증명</span></h2>
-        <p className="small terms"><b>판</b> AI가 한 번 돌린 작업 기록 · <b>장부</b> 그 판의 오류 정답표(사람 검수) · <b>A등급</b> 원자료와 대조하면 누구나 같은 결론이 나는 오류</p>
-        <div className="practice">
-          <Slide as="a" from="left" fromSm="left" fromLg="left" delay={0} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
-            <span className="pcard-k">잡기 · 판 하나</span>
-            <b>판 하나 검수하기</b>
-            <span>{firstMission ? `「${firstMission.title}」` : '여러 단계 작업 기록'}을 최종본부터 거슬러 읽고 빨간 줄 → 결재. 결과에서 놓친 오류의 「처음 생긴 곳」까지 따라갑니다.</span>
+      <section className="why" aria-label="왜 연습해야 하나요">
+        <h2 className="sec-title">훑어보면 맞아 보입니다</h2>
+        <p className="why-lead">AI 활용 역량검사를 넣는 공채가 늘고 있습니다. 보는 것은 결국 하나, AI가 낸 결과를 근거와 대조해 그대로 내보낼지 판단하는 힘입니다. 그런데 이 힘은 혼자서는 연습하기 어렵습니다.</p>
+        <div className="why-stats">
+          <Slide from="up" className="why-stat">
+            <b className="why-num">0<small>건</small> · 22<small>건</small></b>
+            <span className="why-k">AI는 숫자보다 조건을 틀립니다</span>
+            <span className="why-t">실제 모델에게 여러 단계 일을 18번 맡겨 보니 숫자를 잘못 옮긴 오류는 0건, 조건이 다른 대상에 붙거나 빠진 오류는 22건이었습니다. 원자료와 대조하지 않으면 보이지 않습니다.<em> (AI 감사 기준)</em></span>
           </Slide>
-          <Slide as="a" from="left" fromSm="right" fromLg="up" delay={60} className="pcard" href="#/drill">
-            <span className="pcard-k">잡기 · 3문항</span>
-            <b>짧은 연습 3문항</b>
-            <span>판의 문장 하나와 원자료 문단을 보고 「맞다 / 틀렸다」를 고릅니다. 사람이 확정한 장부로 바로 확인합니다.</span>
+          <Slide from="up" delay={80} className="why-stat">
+            <b className="why-num">3<small> / 5</small></b>
+            <span className="why-k">만든 사람도 다 못 찾았습니다</span>
+            <span className="why-t">정답표를 보기 전에 이 판을 직접 풀었을 때, 꼭 잡아야 할 오류 5개 가운데 3개만 찾았습니다. 놓친 둘은 모두 첫 단계의 같은 문장에서 생긴 오류였습니다.</span>
           </Slide>
-          <Slide as="a" from="left" fromSm="left" fromLg="up" delay={120} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
-            <span className="pcard-k">막기 · 다시 시키기 약 30초</span>
-            <b>놓친 오류 막아 보기</b>
-            <span>결과의 놓친 오류에서, 그 오류가 생긴 단계 하나만 지시를 고쳐 AI 동료에게 다시 시킵니다. 막혔는지 감사가 판정합니다.</span>
-          </Slide>
-          <Slide as="a" from="left" fromSm="right" fromLg="right" delay={180} className="pcard" href="#/me">
-            <span className="pcard-k">증명</span>
-            <b>내 실력</b>
-            <span>오류 유형별로 찾은 정도, 근거를 보고 그었는지, 확신이 맞았는지가 쌓입니다. 순위표는 두지 않습니다.</span>
+          <Slide from="up" delay={160} className="why-stat">
+            <b className="why-num">0<small>~</small>15<small>개</small></b>
+            <span className="why-k">챗봇에게 맡기면 답이 갈립니다</span>
+            <span className="why-t">같은 작업 기록을 감사한 AI끼리도 짚은 오류가 0개부터 15개까지 달랐습니다. 그래서 여기서는 사람이 한 항목씩 검수한 정답표로만 채점합니다.</span>
           </Slide>
         </div>
+      </section>
+
+      <section aria-label="한 판을 풀면 얻는 것">
+        <h2 className="sec-title">한 판을 풀면 이것을 돌려받습니다 <span className="small muted">잡기 → 막기 → 증명</span></h2>
+        <div className="practice">
+          <Slide as="a" from="left" fromSm="left" fromLg="left" delay={0} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
+            <span className="pcard-k">01 · 잡기</span>
+            <b>어디서 처음 틀렸나</b>
+            <span>{firstMission ? `「${firstMission.title}」` : '여러 단계 작업 기록'}을 최종본부터 원자료와 대조해 빨간 줄을 긋고 결재합니다. 결과에서 놓친 오류가 처음 생긴 단계와 옮겨 적힌 길이 지도로 나옵니다.</span>
+          </Slide>
+          <Slide as="a" from="left" fromSm="right" fromLg="up" delay={60} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
+            <span className="pcard-k">02 · 돌아보기</span>
+            <b>근거를 보고 그었나</b>
+            <span>놓친 오류마다 그 근거 문단이 내 화면에 한 번이라도 보였는지, 확실하다고 그은 줄이 맞았는지 알려 줍니다. 대충 훑은 곳이 드러납니다.</span>
+          </Slide>
+          <Slide as="a" from="left" fromSm="left" fromLg="up" delay={120} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
+            <span className="pcard-k">03 · 막기</span>
+            <b>지시를 고치면 막히나</b>
+            <span>놓친 오류가 생긴 단계 하나만 지시를 고쳐 AI에게 실제로 다시 시킵니다. 막혔는지 다른 회사 AI와 코드가 판정합니다(약 30초).</span>
+          </Slide>
+          <Slide as="a" from="left" fromSm="right" fromLg="right" delay={180} className="pcard" href="#/drill">
+            <span className="pcard-k">04 · 증명</span>
+            <b>다음엔 잡나</b>
+            <span>결재한 판의 문장으로 하루 3문항 짧은 연습을 하고, 오류 유형별로 찾은 정도가 내 실력에 쌓입니다. 순위표는 두지 않습니다.</span>
+          </Slide>
+        </div>
+        {firstRun && !done1 && <p className="cta-row"><StartButton run={firstRun} done={done1} /><span className="small muted">첫 판: {firstMission ? `「${firstMission.title}」` : ''} · AI가 실제로 한 작업 기록 · 정답표 사람 검수 완료</span></p>}
       </section>
 
       <div className="hero-side two">
         <Slide from="left" className="how-made">
           <p className="small"><b>「챗봇에게 틀린 곳을 찾아 달라고 하면 되지 않나요?」</b></p>
-          <p className="small">시킬 수 있습니다. 문제는 그 답을 믿어도 되는지입니다. 같은 작업 기록을 감사한 모델끼리도 짚는 항목이 0개부터 15개까지 갈렸습니다. 그래서 정답표는 사람이 한 항목씩 검수한 것만 씁니다.</p>
+          <p className="small">시킬 수 있습니다. 문제는 그 답을 믿어도 되는지입니다. 그래서 오류를 일부러 심지 않고, AI가 단계를 넘기며 저절로 낸 오류만 씁니다. 결과물은 손대지 않습니다.</p>
         </Slide>
         <Slide from="left" fromSm="right" className="how-made">
           <p className="small"><b>정답표는 이렇게 만듭니다</b></p>
-          <p className="small">오류를 일부러 심지 않습니다. 단계를 넘기며 저절로 생긴 오류를, 작업 기록을 처음 보는 다른 회사 감사 모델이 짚고, 코드가 근거 인용을 대조하고, 사람이 검수해 확정합니다. 틀렸다면 이의를 걸 수 있고, 받아들이면 장부가 새 판이 되어 다시 채점됩니다. <a href="#/about">만든 방법과 검증</a></p>
+          <p className="small">작업 기록을 처음 보는 다른 회사 AI가 짚고, 코드가 근거 인용을 대조하고, 사람이 검수해 확정합니다. 틀렸다면 이의를 걸 수 있고, 받아들이면 장부가 새 판이 되어 다시 채점됩니다. <a href="#/about">만든 방법과 검증</a></p>
         </Slide>
       </div>
+      <p className="small terms"><b>판</b> AI가 한 번 돌린 작업 기록 · <b>장부</b> 그 판의 오류 정답표(사람 검수) · <b>A등급</b> 원자료와 대조하면 누구나 같은 결론이 나는 오류</p>
 
       {error && <p className="error">{error}</p>}
       {!data && !error && <p className="muted">미션을 불러오는 중…</p>}
@@ -92,8 +106,19 @@ export default function Home() {
           {waiting.map(mission)}
         </details>
       ) : waiting.map(mission))}
+      {firstRun && !done1 && (
+        <section className="cta-band" aria-label="시작">
+          <div><b>준비됐다면, 첫 판부터</b><p className="small muted">최종본부터 원자료와 대조해 빨간 줄을 긋고 결재하면, 놓친 오류가 어디서 생겼는지 바로 돌려받습니다.</p></div>
+          <StartButton run={firstRun} done={done1} />
+        </section>
+      )}
     </main>
   );
+}
+
+/** 첫 판 시작 버튼(첫 화면 여러 곳에서 같은 행동) */
+function StartButton({ run, done }) {
+  return <a className="btn btn-primary" href={`#/r/${run.runId}`}>{done ? '결과 다시 보기' : '첫 판 검수 시작'}</a>;
 }
 
 /** 첫 화면 예시 그림: 단계 레일 위로 오류 하나가 처음 생긴 단계에서 공지까지 번진다(실제 판의 정답이 아님) */
