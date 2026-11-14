@@ -54,10 +54,11 @@ export default function About() {
       <p className="small muted">{NATURAL.note}</p>
       <div className="table-wrap"><table className="eval-table"><tbody>{NATURAL.rows.map((r) => <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td></tr>)}</tbody></table></div>
       <h3>사람 검수에서 장부가 얼마나 바뀌었나</h3>
-      {st?.ledgers?.length ? (
-        <div className="table-wrap"><table className="eval-table"><thead><tr><th>판</th><th>AI 장부 항목(A)</th><th>확정 항목(A)</th><th>삭제</th><th>등급 바꿈</th><th>사람이 추가</th></tr></thead>
-          <tbody>{st.ledgers.map((l) => <tr key={l.runId}><td className="mono">{l.runId}</td><td>{l.aiItems}({l.aiA})</td><td>{l.finalItems}({l.finalA})</td><td>{l.deleted}</td><td>{l.gradeChanged}</td><td>{l.added}</td></tr>)}</tbody></table></div>
-      ) : <p className="muted small">아직 검수를 마친 판이 없습니다.</p>}
+      {st?.ledgers?.length ? (<>
+        <div className="table-wrap"><table className="eval-table"><thead><tr><th>판</th><th>AI 장부 항목(A)</th><th>자동 나눔</th><th>자동 합침</th><th>사람이 삭제</th><th>사람이 추가</th><th>확정 항목(A)</th><th>등급 바꿈</th></tr></thead>
+          <tbody>{st.ledgers.map((l) => <tr key={l.runId}><td className="mono">{l.runId}</td><td>{l.aiItems}({l.aiA})</td><td>{l.split == null ? '—' : `+${l.split}`}</td><td>{l.merged == null ? '—' : `−${l.merged}`}</td><td>−{l.deleted}</td><td>+{l.added}</td><td>{l.finalItems}({l.finalA})</td><td>{l.gradeChanged}</td></tr>)}</tbody></table></div>
+          <p className="small muted">AI 장부 항목 + 자동 나눔 − 자동 합침 − 사람이 삭제 + 사람이 추가 = 확정 항목입니다. 나눔·합침은 묶기 규칙(v2)을 코드가 적용한 것이고, 등급 바꿈은 항목 수를 바꾸지 않습니다.</p>
+      </>) : <p className="muted small">아직 검수를 마친 판이 없습니다.</p>}
       <h3>이의 제기</h3>
       <p>{st ? `접수 ${st.objections.total}건 · 받아들임 ${st.objections.accepted}건 · 받아들이지 않음 ${st.objections.rejected}건 · 대기 ${st.objections.open}건 (만든 사람 기기 제외)` : '—'}</p>
       <h3>사용</h3>
@@ -65,7 +66,7 @@ export default function About() {
 
       <h2>한계</h2>
       <ul>
-        <li>감사 모델마다 보는 폭이 크게 다릅니다. 같은 판에서 한 감사는 A를 0~2개, 다른 감사는 6~14개로 매긴 일이 있습니다. 그래서 사람 검수 없이 점수를 매기지 않습니다.</li>
+        <li>감사 모델마다 보는 폭이 크게 다릅니다. Claude Sonnet 5.5가 같은 미션(m4)을 처리한 세 판에서 감사별로 낸 항목 수는 Claude Opus 5.5 5·6·3개, GPT-6.1 Sol 7·15·12개, Gemini 4 Argon 0·0·0개였습니다(AI 감사 기준, 사람 확인 전). 그래서 사람 검수 없이 점수를 매기지 않습니다.</li>
         <li>감사 회사가 늘어난다고 오류를 더 잡는다는 보장은 없습니다. 사람 검수를 마친 판 하나(Claude 작업, 확정 장부의 A 5개)에서 Google 감사는 고정 판 설정(Gemini 4 Argon, 생각 high)과 팀장 모드 후보 두 설정(Gemini 3.8 Flash medium, Gemini 4 Argon low) 모두 A를 하나도 짚지 못했습니다. 판 하나의 결과라 회사별 성능으로 일반화하지 않습니다.</li>
         <li>사람 검수는 만든 사람 한 명이 합니다. 놓친 오류는 이의 제기로만 보완됩니다.</li>
         <li>팀장 모드의 장부는 사람 확인 전입니다. 결과 지표는 참고로 보고, 이의를 걸 수 있습니다.</li>
