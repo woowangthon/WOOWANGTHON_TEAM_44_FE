@@ -104,7 +104,7 @@ export default function RunView({ id }) {
             <li>틀린 문장을 누르면 빨간 줄을 그을 수 있습니다. 확실한지 의심인지도 고릅니다.</li>
             <li>다 봤으면 맨 아래에서 승인 또는 반려를 결재하세요.</li>
           </ol>
-          <p className="todo-note">틀린 곳이 없을 수도 있습니다. 앞 단계를 펼쳐 오류가 처음 생긴 곳을 짚으면 「멈췄어야 할 곳」을 맞힌 것입니다. 어느 원자료 문단이 화면에 보였는지는 이 판의 결과 피드백에만 씁니다.</p>
+          <p className="todo-note">처음이라 어렵게 느껴지면 <a href="#/mock">모의 문제집</a>(문장 7개, 약 5분)으로 감부터 잡아도 됩니다. 틀린 곳이 없을 수도 있습니다. 앞 단계를 펼쳐 오류가 처음 생긴 곳을 짚으면 「멈췄어야 할 곳」을 맞힌 것입니다. 어느 원자료 문단이 화면에 보였는지는 이 판의 결과 피드백에만 씁니다.</p>
         </section>
         <p className="brief">{mission.brief}</p>
         <div className="work-grid">
