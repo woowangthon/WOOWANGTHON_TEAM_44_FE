@@ -97,7 +97,8 @@ export default function RunView({ id }) {
         <section className="todo-card" aria-label="할 일">
           <h2 className="todo-title">할 일</h2>
           <ol className="todo-steps">
-            <li>아래 최종본({finals.map((st) => `${st.key} ${st.name}`).join(', ')})을 원자료와 한 문장씩 대조하세요.</li>
+            <li><b>원자료</b>(넓은 화면은 왼쪽, 휴대폰은 「원자료 보기」)가 정답의 근거입니다. 오른쪽은 AI 동료가 그 원자료로 만든 결과물입니다.</li>
+            <li>오른쪽 맨 위 최종본({finals.map((st) => `${st.key} ${st.name}`).join(', ')})부터 원자료와 한 문장씩 견주며, 원자료와 다르거나 원자료에 없는 말을 찾으세요.</li>
             <li>틀린 문장을 누르면 빨간 줄을 그을 수 있습니다. 확실한지 의심인지도 고릅니다.</li>
             <li>다 봤으면 맨 아래에서 승인 또는 반려를 결재하세요.</li>
           </ol>
