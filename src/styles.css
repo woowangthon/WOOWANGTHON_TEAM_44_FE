@@ -630,3 +630,19 @@ button.pm-row:hover, button.pm-row.on { background: var(--bg-2); }
   .crowd { padding: 12px 14px; }
   .crowd-hist li { grid-template-columns: 5.5em 1fr 4.5em; }
 }
+
+/* 기록 보관(기록 코드·선택 계정) — 직각, 입력은 한 줄씩 */
+.acct-link { font-size: var(--fs-15); text-decoration: none; color: var(--navy); border: 1px solid var(--line-2); padding: 5px 12px; white-space: nowrap; }
+.acct-link:hover, .acct-link[aria-current='page'] { background: var(--navy-bg); }
+.top { position: relative; }
+.account .acct-code { font-size: var(--fs-13); background: var(--bg-2); padding: 2px 6px; word-break: break-all; }
+.btn-sm { padding: 3px 10px; font-size: var(--fs-13); }
+.acct-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+.acct-grid form label { display: block; margin: 10px 0; font-size: var(--fs-15); font-weight: 600; }
+.acct-grid form input { display: block; width: 100%; margin-top: 4px; padding: 9px 10px; border: 1px solid var(--line-2); border-radius: 0; font: inherit; font-weight: 400; background: var(--bg); }
+.account .sheet + .sheet, .account > .sheet { margin-top: 14px; }
+@media (max-width: 820px) {
+  .acct-link { position: absolute; right: 12px; top: 10px; font-size: var(--fs-13); padding: 3px 10px; }
+  .acct-grid { grid-template-columns: 1fr; }
+}
+.acct-col { display: grid; gap: 14px; align-content: start; }

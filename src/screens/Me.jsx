@@ -20,7 +20,7 @@ export default function Me() {
   return (
     <main>
       <h1>내 실력</h1>
-      <p className="small muted">이 브라우저의 무작위 번호로만 모읍니다. 순위표는 두지 않고, 다른 사람들의 누적 기록(만든 사람 제외, 판마다 첫 풀이만)과 나란히 보여 줍니다. 표본이 적으면 「아직 이릅니다」라고 그대로 적습니다.</p>
+      <p className="small muted">이 브라우저의 무작위 번호로만 모읍니다. 순위표는 두지 않고, 다른 사람들의 누적 기록(만든 사람 제외, 판마다 첫 풀이만)과 나란히 보여 줍니다. 표본이 적으면 「아직 이릅니다」라고 그대로 적습니다. 다른 기기에서 이어 보려면 <a href="#/account">기록 보관</a>에서 기록 코드를 쓰거나 계정을 만드세요.</p>
       <Compare shadow={h.filter((x) => x.kind === 'shadow' && x.A != null)} others={others} mock={drill?.mock} />
       <section className="sheet" aria-label="오류 유형별 숙련도">
         <h2 style={{ marginTop: 0 }}>오류 유형별로 찾은 정도</h2>

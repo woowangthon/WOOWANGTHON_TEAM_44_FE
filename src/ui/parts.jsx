@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { BRAND } from '../brand.js';
+import { account } from '../api.js';
 
 // 만든 사람 도구(검수)는 메뉴에 두지 않는다. 주소 #/review 로 들어가거나, 만든 사람 기기(?maker=1로 한 번 들어온 브라우저)에서 로고를 1.5초 안에 다섯 번 누르면 열린다
 export function Header({ maker, page }) {
@@ -25,6 +26,7 @@ export function Header({ maker, page }) {
         <a href="#/me" aria-current={cur('me')}>내 실력</a>
         <a href="#/about" aria-current={cur('about')}>만든 방법<span className="nav-long">과 검증</span></a>
       </nav>
+      <a className="acct-link" href="#/account" aria-current={cur('account')}>{account.name() || '로그인'}</a>
     </header>
   );
 }

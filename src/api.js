@@ -40,6 +40,26 @@ export const retry = {
   cancel(runId) { const p = retry.prev(runId); if (p) myAnswers.set(runId, p); store.set(`ss2:retryPrev:${runId}`, ''); },
   end(runId) { store.set(`ss2:retryPrev:${runId}`, ''); },
 };
+/** 선택 계정: 기록은 기록 코드(= 이 브라우저의 무작위 기기 ID)에 묶여 있고, 계정은 그 코드를 아이디·비밀번호에 묶어 다른 기기에서 이어 보게 한다 */
+const newDeviceId = () => globalThis.crypto?.randomUUID?.() ?? `d-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+async function useDevice(id, user) {
+  store.set('ss:device', id); store.set('ss:user', user || '');
+  // 이 기기에서 푼 판(결과 화면을 다시 여는 데 쓰는 runId → answerId)을 서버 기록으로 다시 채운다
+  try {
+    const h = await req('/api/play', { action: 'history', deviceId: id });
+    const a = {}; for (const x of h.history ?? []) if (x.kind === 'shadow' && x.id) a[x.runId] = x.id;
+    store.set('ss2:answers', JSON.stringify(a));
+  } catch { /* 기록을 못 읽어도 로그인은 그대로 */ }
+}
+export const account = {
+  name: () => store.get('ss:user') || '',
+  async signup(username, password, code) { const r = await req('/api/account', { action: 'signup', username, password, code: (code || '').trim() || deviceId() }); await useDevice(r.deviceId, r.username); return r; },
+  async login(username, password) { const r = await req('/api/account', { action: 'login', username, password }); await useDevice(r.deviceId, r.username); return r; },
+  async restore(code) { const r = await req('/api/account', { action: 'code', code: (code || '').trim() }); await useDevice(r.deviceId, ''); return r; },
+  status: () => req('/api/account', { action: 'status', deviceId: deviceId() }),
+  /** 로그아웃: 이 브라우저는 새 기록 코드로 비회원이 된다(같은 브라우저를 쓰는 다른 사람이 내 기록을 보지 않게) */
+  logout() { store.set('ss:user', ''); store.set('ss:device', newDeviceId()); store.set('ss2:answers', '{}'); },
+};
 export const reviewCode = { get: () => store.get('ss2:review') ?? '', set: (v) => store.set('ss2:review', v) };
 
 async function req(path, body, headers = {}) {
