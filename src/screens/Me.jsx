@@ -5,10 +5,12 @@ import { api } from '../api.js';
 export default function Me() {
   const [h, setH] = useState(null);
   const [skill, setSkill] = useState(null);
+  const [others, setOthers] = useState(null);
+  const [habits, setHabits] = useState({});
   const [drill, setDrill] = useState(null);
   const [error, setError] = useState('');
   useEffect(() => {
-    api.history().then((r) => { setH(r.history); setSkill(r.skill ?? null); }).catch((e) => setError(e.message));
+    api.history().then((r) => { setH(r.history); setSkill(r.skill ?? null); setOthers(r.others ?? null); setHabits(r.habits ?? {}); }).catch((e) => setError(e.message));
     api.drill('history').then(setDrill).catch(() => {});
   }, []);
   if (error) return <main><p className="error">{error}</p></main>;
@@ -18,16 +20,18 @@ export default function Me() {
   return (
     <main>
       <h1>내 실력</h1>
-      <p className="small muted">이 브라우저의 무작위 번호로만 모읍니다. 남과 견주는 순위는 두지 않고, 내 변화만 보여 줍니다. 표본이 적으면 「아직 이릅니다」라고 그대로 적습니다.</p>
+      <p className="small muted">이 브라우저의 무작위 번호로만 모읍니다. 순위표는 두지 않고, 다른 사람들의 누적 기록(만든 사람 제외, 판마다 첫 풀이만)과 나란히 보여 줍니다. 표본이 적으면 「아직 이릅니다」라고 그대로 적습니다.</p>
+      <Compare shadow={h.filter((x) => x.kind === 'shadow' && x.A != null)} others={others} mock={drill?.mock} />
       <section className="sheet" aria-label="오류 유형별 숙련도">
         <h2 style={{ marginTop: 0 }}>오류 유형별로 찾은 정도</h2>
         {skill?.patterns?.length ? (<>
           <ul className="skill-list">{[...skill.patterns].sort((a, b) => (a.early - b.early) || (a.mastery - b.mastery)).map((p) => (
-            <li key={p.pattern} className={p.early ? 'early' : undefined}><span>{p.pattern}</span><span className="skill-bar" aria-hidden="true"><span style={{ width: `${Math.round(p.mastery * 100)}%` }} /></span><span className="skill-n">찾음 {p.found}/{p.n}{p.early ? ' · 아직 이름' : ''}</span></li>
+            <li key={p.pattern} className={p.early ? 'early' : undefined}><span>{p.pattern}</span><span className="skill-bar" aria-hidden="true"><span style={{ width: `${Math.round(p.mastery * 100)}%` }} /></span><span className="skill-n">찾음 {p.found}/{p.n}{p.early ? ' · 아직 이름' : ''}{(() => { const o = others?.patterns?.find((x) => x.pattern === p.pattern); return o?.n ? <em className="muted"> · 다른 사람 {o.rate}%({o.found}/{o.n})</em> : null; })()}</span></li>
           ))}</ul>
           <p className="small muted">막대 = (찾음 + 1) ÷ (만난 수 + 2). 처음엔 절반에서 시작해 판이 쌓일수록 실제 비율에 가까워집니다. 3번 미만 만난 유형은 회색 막대로 둡니다. {skill.runs}판 기준, 최신 사람 검수 장부로 다시 셉니다.</p>
+          <Tips patterns={skill.patterns} habits={habits} />
           {(() => { const weak = [...skill.patterns].filter((p) => !p.early).sort((a, b) => a.mastery - b.mastery)[0]; return weak ? <p>다음 추천: <b>{weak.pattern}</b>이 가장 약합니다. <a href="#/patterns">습관 도감</a>에서 이 유형의 확인 습관을 보고, <a href="#/drill">짧은 연습</a>으로 이어 가세요.</p> : <p className="small">아직 판단하기 이릅니다(유형마다 3번 이상 만나야 추천합니다).</p>; })()}
-        </>) : <p className="muted">아직 판을 풀지 않았습니다. <a href="#/">오늘의 연습</a>에서 시작하세요.</p>}
+        </>) : <p className="muted">아직 판을 풀지 않았습니다. <a href="#/mock">모의 문제집</a>(약 5분)이나 <a href="#/">오늘의 연습</a>에서 시작하세요.</p>}
       </section>
       {drill?.summary?.n > 0 && (
         <section className="sheet" style={{ marginTop: 14 }} aria-label="짧은 연습">
@@ -60,4 +64,37 @@ function Trend({ rows }) {
   const rate = (xs) => (xs.length ? Math.round((100 * xs.reduce((s, x) => s + (x.A - x.foundA), 0)) / Math.max(1, xs.reduce((s, x) => s + x.A, 0))) : null);
   const a = rate(rows.slice(0, half)), b = rate(rows.slice(half));
   return <p>놓친 A 비율: 앞의 {half}판 {a}% → 뒤의 {rows.length - half}판 {b}%. 판이 적어 우연일 수 있습니다.</p>;
+}
+
+/** 나와 다른 사람들 견주기: A를 찾은 비율, 결재를 맞힌 비율, 모의 문제집 */
+function Compare({ shadow, others, mock }) {
+  const found = shadow.reduce((s, x) => s + (x.foundA ?? 0), 0); const all = shadow.reduce((s, x) => s + (x.A ?? 0), 0);
+  const pct = (a, b) => (b ? Math.round((a / b) * 100) : null);
+  if (!shadow.length && !others?.plays && !mock?.n) return null;
+  return (
+    <section className="sheet compare" aria-label="나와 다른 사람들">
+      <h2 style={{ marginTop: 0 }}>나와 다른 사람들</h2>
+      <table className="eval-table">
+        <thead><tr><th></th><th>A등급 오류 찾은 비율</th><th>결재 맞힘</th></tr></thead>
+        <tbody>
+          <tr><td><b>나</b> ({shadow.length}판)</td><td>{shadow.length ? `${pct(found, all)}% (${found}/${all})` : '—'}</td><td>{shadow.length ? `${shadow.filter((x) => x.decisionOk).length}/${shadow.length}` : '—'}</td></tr>
+          <tr><td>다른 사람 {others?.people ?? 0}명 ({others?.plays ?? 0}판)</td><td>{others?.foundRate != null ? `${others.foundRate}%` : '—'}</td><td>{others?.decisionOkRate != null ? `${others.decisionOkRate}%` : '—'}</td></tr>
+        </tbody>
+      </table>
+      {mock?.n > 0 && <p className="small">모의 문제집: {mock.n}문항 중 {mock.correct}개 맞힘. 다른 사람들 분포는 <a href="#/mock">모의 문제집</a> 끝 화면에 있습니다.</p>}
+      <p className="small muted">처음 하는 사람은 대개 최종본만 읽고 「틀린 데가 없다」고 봅니다. 다른 사람 숫자가 낮은 것도 그래서입니다. {(others?.people ?? 0) < 5 ? `아직 ${others?.people ?? 0}명이라 우연이 큽니다.` : ''}</p>
+    </section>
+  );
+}
+
+/** 요령: 내가 놓친 유형의 확인 습관(놓친 횟수가 많은 순, 최대 3개). 표본이 적어도 놓친 적이 있으면 보여 준다 */
+function Tips({ patterns, habits }) {
+  const weak = [...patterns].filter((p) => p.missed > 0).sort((a, b) => b.missed - a.missed || a.mastery - b.mastery).slice(0, 3);
+  if (!weak.length) return null;
+  return (
+    <div className="learned">
+      <h3 style={{ marginTop: 0 }}>요령 · 다음 판에서 먼저 볼 것</h3>
+      <ul>{weak.map((p) => <li key={p.pattern}><b>{p.pattern}</b>(놓침 {p.missed}번): {habits[p.pattern] ?? ''}</li>)}</ul>
+    </div>
+  );
 }

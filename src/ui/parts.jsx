@@ -19,6 +19,7 @@ export function Header({ maker, page }) {
       </a>
       <nav className="top-nav" aria-label="주 메뉴">
         <a href="#/" aria-current={cur('home')}>오늘의 연습</a>
+        <a href="#/mock" aria-current={cur('mock')}>모의 문제집</a>
         <a href="#/drill" aria-current={cur('drill')}>짧은 연습</a>
         <a href="#/patterns" aria-current={cur('patterns')}>습관 도감</a>
         <a href="#/me" aria-current={cur('me')}>내 실력</a>

@@ -1,6 +1,7 @@
 // 사수 모드 결과(놓친 것 따라가기): 한 줄 판정 → 오류가 번진 길·배운 것 → 놓친 A 카드(근거 칩·출처 칩·막아 보기) → 찾은 A·B·C(접기) → 작업 기록 다시 보기(S5→S1) → 이 정답표에 대해, 이의 제기
 import { useEffect, useState } from 'react';
-import { api, modelName, myAnswers } from '../api.js';
+import { api, modelName, myAnswers, isMaker } from '../api.js';
+import { RunCrowd } from '../ui/Crowd.jsx';
 import { DocHead, LedgerTag, Stamp } from '../ui/doc.jsx';
 import { SourcePanel, SourceDock, StageBlock, useDialog } from '../ui/work.jsx';
 import PathMap from '../ui/PathMap.jsx';
@@ -113,6 +114,7 @@ export default function Result({ run, done }) {
             <p className="muted">점수는 사람이 검수한 장부의 A등급(원자료와 대조하면 누구나 같은 결론이 나는 오류)으로만 매깁니다. 배점은 찾음 50 · 정확도 20 · 결재 20 · 처음 생긴 곳 10입니다. B·C는 판단이 갈릴 수 있어 참고로만 보여 드립니다. 헛짚음은 장부에 없는 곳에 그은 빨간 줄입니다.{splitMarks.length ? ' 판단이 갈리는 칸(한 감사만 오류가 옮겨졌다고 본 칸)에 그은 줄은 찾음에도 헛짚음에도 넣지 않습니다.' : ''}</p>
           </details>
         </section>
+        <RunCrowd crowd={done.crowd} mine={g.counts.foundA} maker={isMaker()} />
 
         <div className="result-top">
           <PathMap items={A} stages={stages} perOf={perOf} onPick={pick} />
@@ -229,6 +231,10 @@ function Learned({ A, perOf, stageName, falseMarks, decisionOk, shouldReject, ev
   const stops = Object.keys(byStage).sort((a, b) => num(a) - num(b));
   const first = stops[0];
   const prevent = missed.find((it) => it.prevent)?.prevent;
+  // 다음 판 요령: 가장 많이 놓친 유형의 확인 습관
+  const cnt = {}; for (const it of missed) cnt[it.pattern] = (cnt[it.pattern] ?? 0) + 1;
+  const topPat = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0];
+  const tip = missed.find((it) => it.pattern === topPat)?.habit;
   return (
     <section className="learned" aria-label="이번 판에서 배운 것">
       <h2>이번 판에서 배운 것</h2>
@@ -240,6 +246,7 @@ function Learned({ A, perOf, stageName, falseMarks, decisionOk, shouldReject, ev
           ? <li>원자료 패널을 열지 않아 근거 대조 기록이 없습니다. 다음 판에서는 원자료를 펼쳐 문장마다 대조해 보세요.</li>
           : <li>근거 대조: {ev.found?.n ? `찾은 오류 ${ev.found.n}개 가운데 ${ev.found.checked}개는 근거 문단이 화면에 보인 뒤에 그었습니다.` : ''}{ev.missed?.n ? ` 놓친 오류 ${ev.missed.n}개 가운데 ${ev.missed.neverLooked}개는 근거 문단이 한 번도 화면에 나오지 않았습니다${(ev.items ?? []).filter((x) => !x.found && !x.looked).flatMap((x) => x.refs ?? []).length ? `(${[...new Set((ev.items ?? []).filter((x) => !x.found && !x.looked).flatMap((x) => x.refs ?? []))].join(', ')})` : ''}.` : ''}</li>)}
         {cal && (cal.sure?.n || cal.unsure?.n) ? <li>확신: 확실하다고 그은 줄 {cal.sure?.n ?? 0}개 가운데 {cal.sure?.correct ?? 0}개, 의심으로 그은 줄 {cal.unsure?.n ?? 0}개 가운데 {cal.unsure?.correct ?? 0}개가 A등급 오류 칸이었습니다.{(cal.sure?.n ?? 0) >= 2 && (cal.sure.correct / cal.sure.n) < 0.5 ? ' 확실하다고 한 줄이 절반 넘게 빗나갔습니다. 근거 문단을 짚은 뒤에 「확실」을 고르는 습관을 들여 보세요.' : (cal.unsure?.n ?? 0) >= 1 && cal.unsure.correct === cal.unsure.n ? ' 의심한 줄이 모두 맞았습니다. 의심이 들면 원자료를 한 번 더 보고 확실로 바꿔도 됩니다.' : ''}</li> : null}
+        {tip && <li className="tip-li"><b>다음 판 요령({topPat}):</b> {tip}</li>}
         {prevent && <li>다음에 맡길 때 넣을 지시: 「{prevent}」 아래 놓친 오류 카드의 「이 오류 막아 보기」에서 직접 써 볼 수 있습니다.</li>}
       </ul>
     </section>

@@ -608,3 +608,24 @@ button.pm-row:hover, button.pm-row.on { background: var(--bg-2); }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes row-in { from { opacity: 0; transform: translate3d(-14px, 0, 0); } to { opacity: 1; transform: none; } }
 .sheet > h2:first-child { margin-top: 0; }
+
+/* 다른 사람들의 누적 기록(분포)·모의 문제집 안내 — 직각, 막대는 남색, 내 줄만 굵게 */
+.crowd { margin: 14px 0 18px; padding: 14px 20px; border: 1px solid var(--line); border-top: 3px solid var(--navy); background: var(--bg); }
+.crowd h2 { margin: 0.1em 0 0.3em; }
+.crowd-hist { list-style: none; padding: 0; margin: 8px 0; max-width: 560px; }
+.crowd-hist li { display: grid; grid-template-columns: 6.5em 1fr 5.5em; gap: 10px; align-items: center; padding: 3px 0; font-size: var(--fs-15); }
+.crowd-hist .ch-bar { height: 14px; background: var(--line); display: block; }
+.crowd-hist .ch-bar span { display: block; height: 100%; background: #9aa7c0; min-width: 0; }
+.crowd-hist li.me { font-weight: 700; }
+.crowd-hist li.me .ch-bar span { background: var(--navy); }
+.crowd-hist li.me .ch-k::before { content: '▶ '; color: var(--red, #c0392b); }
+.learned li.tip-li { list-style: none; margin-left: -1.2em; padding: 6px 10px; background: #fff8e1; border-left: 3px solid #e0a800; }
+.mock-cta { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 16px; align-items: center; margin: 0 0 16px; padding: 12px 16px; border: 1px solid var(--line); border-left: 4px solid var(--navy); background: var(--bg); }
+.mock-cta span { font-size: var(--fs-15); }
+.compare { margin: 14px 0; }
+.compare .eval-table td:first-child { white-space: nowrap; }
+@media (max-width: 720px) {
+  .mock-cta { grid-template-columns: 1fr; }
+  .crowd { padding: 12px 14px; }
+  .crowd-hist li { grid-template-columns: 5.5em 1fr 4.5em; }
+}

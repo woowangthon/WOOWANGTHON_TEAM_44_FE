@@ -58,6 +58,7 @@ export default function Home() {
       </section>
 
       <section aria-label="한 판을 풀면 얻는 것">
+        <p className="mock-cta"><b>처음이라면 모의 문제집부터</b><span>문장 하나와 원자료 문단만 보고 「맞다 / 틀렸다」를 고르는 7문항, 약 5분입니다. 다른 사람들은 몇 개를 맞혔는지도 함께 보여 드립니다.</span><a className="btn" href="#/mock">모의 문제집 풀기</a></p>
         <h2 className="sec-title">한 판을 풀면 이것을 돌려받습니다 <span className="small muted">잡기 → 막기 → 증명</span></h2>
         <div className="practice">
           <Slide as="a" from="left" fromSm="left" fromLg="left" delay={0} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
