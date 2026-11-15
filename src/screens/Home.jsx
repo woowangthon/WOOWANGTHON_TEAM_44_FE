@@ -173,10 +173,11 @@ function Mission({ m, solved }) {
         <div>
           <h3>검수해 보기 <span className="muted small">사수 모드</span></h3>
           {!m.fixed.length && <p className="small muted">이 미션은 아직 검수할 판이 없습니다. 맡겨 보기(팀장 모드)는 할 수 있습니다.</p>}
+          {m.fixed.length > 1 && new Set(m.fixed.map((f) => f.worker)).size === 1 && <p className="small muted">같은 지시로 {modelName(m.fixed[0].worker)}에게 {m.fixed.length}번 맡긴 결과입니다. 같은 일을 시켜도 결과물과 틀린 곳이 판마다 다릅니다.</p>}
           <ul className="run-list">
             {m.fixed.map((f, fi) => (
               <li key={f.runId}>
-                <a href={`#/r/${f.runId}`}>{m.fixed.length > 1 ? `${fi + 1}번 · ` : ''}{fmtDate(f.at)} {modelName(f.worker)} 판</a>{f.ledger.status !== 'reviewed' && <> <LedgerTag status={f.ledger.status} version={f.ledger.version} /></>}
+                <a href={`#/r/${f.runId}`}>{m.fixed.length > 1 ? `${fi + 1}번째 결과 · ` : ''}{fmtDate(f.at)} {modelName(f.worker)} 판</a>{f.ledger.status !== 'reviewed' && <> <LedgerTag status={f.ledger.status} version={f.ledger.version} /></>}
                 {solved[f.runId] && <> <a className="tag" href={`#/r/${f.runId}`}>이 브라우저에서 풂 · 내 결과 보기</a></>}
               </li>
             ))}
