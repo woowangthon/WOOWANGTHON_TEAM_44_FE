@@ -15,7 +15,6 @@ export default function Home() {
   const missions = [...(data?.missions ?? [])].sort((a, b) => (b.fixed.some((f) => f.playable) ? 1 : 0) - (a.fixed.some((f) => f.playable) ? 1 : 0));
   const playableOf = (m) => m.fixed.some((f) => f.playable);
   const ready = missions.filter(playableOf), waiting = missions.filter((m) => !playableOf(m));
-  const mission = (m) => <Mission key={m.id} m={m} solved={solved} />;
   const firstRun = missions.flatMap((m) => m.fixed).find((f) => f.playable) ?? missions.flatMap((m) => m.fixed)[0];
   const firstMission = missions.find((m) => m.fixed.some((f) => f.runId === firstRun?.runId));
   const done1 = firstRun && solved[firstRun.runId];
@@ -37,82 +36,105 @@ export default function Home() {
 
       <section className="why" aria-label="왜 연습해야 하나요">
         <h2 className="sec-title">훑어보면 맞아 보입니다</h2>
-        <p className="why-lead">AI 활용 역량검사를 넣는 공채가 늘고 있습니다. 보는 것은 결국 하나, AI가 낸 결과를 근거와 대조해 그대로 내보낼지 판단하는 힘입니다. 그런데 이 힘은 혼자서는 연습하기 어렵습니다.</p>
+        <p className="why-lead">AI 역량검사가 보는 것은 하나, AI 결과를 근거와 대조해 내보낼지 판단하는 힘입니다. 혼자서는 연습하기 어렵습니다.</p>
         <div className="why-stats">
           <Slide from="up" className="why-stat">
             <b className="why-num">0<small>건</small> · 22<small>건</small></b>
             <span className="why-k">AI는 숫자보다 조건을 틀립니다</span>
-            <span className="why-t">실제 모델에게 여러 단계 일을 18번 맡겨 보니 숫자를 잘못 옮긴 오류는 0건, 조건이 다른 대상에 붙거나 빠진 오류는 22건이었습니다. 원자료와 대조하지 않으면 보이지 않습니다.<em> (AI 감사 기준)</em></span>
+            <span className="why-t">18번 맡긴 기록에서 숫자를 잘못 옮긴 오류는 0건, 조건이 빠지거나 다른 대상에 붙은 오류는 22건.<em> (AI 감사 기준)</em></span>
           </Slide>
           <Slide from="up" delay={80} className="why-stat">
             <b className="why-num">3<small> / 5</small></b>
             <span className="why-k">만든 사람도 다 못 찾았습니다</span>
-            <span className="why-t">정답표를 보기 전에 이 판을 직접 풀었을 때, 꼭 잡아야 할 오류 5개 가운데 3개만 찾았습니다. 놓친 둘은 모두 첫 단계의 같은 문장에서 생긴 오류였습니다.</span>
+            <span className="why-t">정답표를 보기 전 직접 풀었을 때, 꼭 잡을 오류 5개 중 3개만 찾았습니다.</span>
           </Slide>
           <Slide from="up" delay={160} className="why-stat">
             <b className="why-num">0<small>~</small>15<small>개</small></b>
             <span className="why-k">챗봇에게 맡기면 답이 갈립니다</span>
-            <span className="why-t">같은 작업 기록을 감사한 AI끼리도 짚은 오류가 0개부터 15개까지 달랐습니다. 그래서 여기서는 사람이 한 항목씩 검수한 정답표로만 채점합니다.</span>
+            <span className="why-t">감사한 AI끼리도 0개부터 15개까지 갈려, 사람이 검수한 정답표로만 채점합니다.</span>
           </Slide>
         </div>
       </section>
 
       <section aria-label="한 판을 풀면 얻는 것">
-        <p className="mock-cta"><b>처음이라면 모의 문제집부터</b><span>문장 하나와 원자료 문단만 보고 「맞다 / 틀렸다」를 고르는 7문항, 약 5분입니다. 다른 사람들은 몇 개를 맞혔는지도 함께 보여 드립니다.</span><a className="btn" href="#/mock">모의 문제집 풀기</a></p>
+        <p className="mock-cta"><b>처음이라면 모의 문제집부터</b><span>문장 하나를 보고 「맞다 / 틀렸다」를 고르는 7문항, 약 5분.</span><a className="btn" href="#/mock">모의 문제집 풀기</a></p>
         <h2 className="sec-title">한 판을 풀면 이것을 돌려받습니다 <span className="small muted">잡기 → 막기 → 증명</span></h2>
         <div className="practice">
           <Slide as="a" from="left" fromSm="left" fromLg="left" delay={0} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
             <span className="pcard-k">01 · 잡기</span>
             <b>어디서 처음 틀렸나</b>
-            <span>{firstMission ? `「${firstMission.title}」 작업 기록` : '여러 단계 작업 기록'}을 최종본부터 원자료와 대조해 빨간 줄을 긋고 결재합니다. 결과에서 놓친 오류가 처음 생긴 단계와 옮겨 적힌 길이 지도로 나옵니다.</span>
+            <span>최종본부터 원자료와 대조해 빨간 줄을 긋고 결재하면, 놓친 오류가 처음 생긴 단계가 지도로 나옵니다.</span>
           </Slide>
           <Slide as="a" from="left" fromSm="right" fromLg="up" delay={60} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
             <span className="pcard-k">02 · 돌아보기</span>
             <b>근거를 보고 그었나</b>
-            <span>놓친 오류마다 그 근거 문단이 내 화면에 한 번이라도 보였는지, 확실하다고 그은 줄이 맞았는지 알려 줍니다. 대충 훑은 곳이 드러납니다.</span>
+            <span>놓친 오류의 근거 문단을 화면에 띄웠는지, 「확실」한 줄이 맞았는지 알려 줍니다.</span>
           </Slide>
           <Slide as="a" from="left" fromSm="left" fromLg="up" delay={120} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
             <span className="pcard-k">03 · 막기</span>
             <b>지시를 고치면 막히나</b>
-            <span>놓친 오류가 생긴 단계 하나만 지시를 고쳐 AI에게 실제로 다시 시킵니다. 막혔는지 다른 회사 AI와 코드가 판정합니다(약 30초).</span>
+            <span>그 단계 지시만 고쳐 AI에게 실제로 다시 시키고, 막혔는지 판정합니다(약 30초).</span>
           </Slide>
           <Slide as="a" from="left" fromSm="right" fromLg="right" delay={180} className="pcard" href="#/drill">
             <span className="pcard-k">04 · 증명</span>
             <b>다음엔 잡나</b>
-            <span>결재한 판의 문장으로 하루 3문항 짧은 연습을 하고, 오류 유형별로 찾은 정도가 내 실력에 쌓입니다. 순위표는 두지 않습니다.</span>
+            <span>결재한 판의 문장으로 하루 3문항, 오류 유형별 실력이 쌓입니다.</span>
           </Slide>
         </div>
-        {firstRun && !done1 && <p className="cta-row"><StartButton run={firstRun} done={done1} /><span className="small muted">첫 판: {firstMission ? `「${firstMission.title}」` : ''} · AI가 실제로 한 작업 기록 · 정답표 사람 검수 완료</span></p>}
+        {firstRun && !done1 && <p className="cta-row"><StartButton run={firstRun} done={done1} /><span className="small muted">첫 판: {firstMission ? `「${firstMission.title}」` : ''} · AI가 실제로 한 작업 기록</span></p>}
       </section>
 
       <div className="hero-side two">
         <Slide from="left" className="how-made">
           <p className="small"><b>「챗봇에게 틀린 곳을 찾아 달라고 하면 되지 않나요?」</b></p>
-          <p className="small">시킬 수 있습니다. 문제는 그 답을 믿어도 되는지입니다. 그래서 오류를 일부러 심지 않고, AI가 단계를 넘기며 저절로 낸 오류만 씁니다. 결과물은 손대지 않습니다.</p>
+          <p className="small">시킬 수 있지만, 그 답을 믿어도 되는지가 문제입니다. 그래서 AI가 저절로 낸 오류만 쓰고, 결과물은 손대지 않습니다.</p>
         </Slide>
         <Slide from="left" fromSm="right" className="how-made">
           <p className="small"><b>정답표는 이렇게 만듭니다</b></p>
-          <p className="small">작업 기록을 처음 보는 다른 회사 AI가 짚고, 코드가 근거 인용을 대조하고, 사람이 검수해 확정합니다. 틀렸다면 이의를 걸 수 있고, 받아들이면 장부가 새 판이 되어 다시 채점됩니다. <a href="#/about">만든 방법과 검증</a></p>
+          <p className="small">여러 AI가 짚고, 코드가 근거를 대조하고, 사람이 확정합니다. 이의가 받아들여지면 다시 채점합니다. <a href="#/about">만든 방법과 검증</a></p>
         </Slide>
       </div>
       <p className="small terms"><b>판</b> AI가 한 번 돌린 작업 기록 · <b>장부</b> 그 판의 오류 정답표(사람 검수) · <b>A등급</b> 원자료와 대조하면 누구나 같은 결론이 나는 오류</p>
 
       {error && <p className="error">{error}</p>}
       {!data && !error && <p className="muted">미션을 불러오는 중…</p>}
-      <h2 className="sec-title">미션</h2>
-      {ready.map(mission)}
-      {waiting.length > 0 && (ready.length ? (
-        <details className="more-missions">
-          <summary>준비 중인 미션 {waiting.length}개 <span className="small muted">· 아직 검수할 판이 없어 직접 맡기기(팀장 모드)만 됩니다</span></summary>
-          {waiting.map(mission)}
-        </details>
-      ) : waiting.map(mission))}
+      <h2 className="sec-title">미션 <span className="small muted">판을 골라 검수하거나, 직접 맡겨 봅니다</span></h2>
+      <ul className="mission-rows">
+        {ready.map((m) => (
+          <li key={m.id}>
+            <span className="mr-title"><b>{m.title}</b><span className="small muted">원자료 {m.sources}건 · 검수할 판 {m.fixed.length}개</span></span>
+            <span className="mr-runs">{m.fixed.map((f, fi) => <a key={f.runId} href={`#/r/${f.runId}`}>{m.fixed.length > 1 ? `${fi + 1}번째 결과` : '검수해 보기'}{solved[f.runId] ? ' · 내 결과' : ''}</a>)}</span>
+            <a className="btn btn-sm" href={`#/lead/${m.id}`}>직접 맡기기</a>
+          </li>
+        ))}
+      </ul>
+      <p className="small"><a href="#/missions">미션 자세히 보기</a> <span className="muted">(팀장 지시·단계·맡기는 방식별 기준{waiting.length ? ` · 준비 중인 미션 ${waiting.length}개` : ''})</span></p>
       {firstRun && !done1 && (
         <section className="cta-band" aria-label="시작">
           <div><b>준비됐다면, 첫 판부터</b><p className="small muted">최종본부터 원자료와 대조해 빨간 줄을 긋고 결재하면, 놓친 오류가 어디서 생겼는지 바로 돌려받습니다.</p></div>
           <StartButton run={firstRun} done={done1} />
         </section>
       )}
+    </main>
+  );
+}
+
+/** #/missions 미션 자세히: 팀장 지시·단계·판 목록·맡기기 기준(홈에는 한 줄씩만) */
+export function Missions() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+  useEffect(() => { api.missions().then(setData).catch((e) => setError(e.message)); }, []);
+  const solved = myAnswers.all();
+  const ms = data?.missions ?? [];
+  const ready = ms.filter((m) => m.fixed.some((f) => f.playable)), waiting = ms.filter((m) => !m.fixed.some((f) => f.playable));
+  return (
+    <main>
+      <h1>미션</h1>
+      <p className="small muted">미션마다 원자료, 팀장 지시, 단계가 정해져 있습니다. 사람이 검수한 판을 골라 검수하거나(사수 모드), 단계를 나눠 직접 맡겨 봅니다(팀장 모드).</p>
+      {error && <p className="error">{error}</p>}
+      {!data && !error && <p className="muted">미션을 불러오는 중…</p>}
+      {ready.map((m) => <Mission key={m.id} m={m} solved={solved} />)}
+      {waiting.length > 0 && <><h2 className="sec-title">준비 중인 미션 <span className="small muted">아직 검수할 판이 없어 직접 맡기기만 됩니다</span></h2>{waiting.map((m) => <Mission key={m.id} m={m} solved={solved} />)}</>}
     </main>
   );
 }

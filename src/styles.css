@@ -646,3 +646,10 @@ button.pm-row:hover, button.pm-row.on { background: var(--bg-2); }
   .acct-grid { grid-template-columns: 1fr; }
 }
 .acct-col { display: grid; gap: 14px; align-content: start; }
+
+/* 홈 미션 목록: 미션마다 한 줄(늘어나도 한 줄씩), 자세한 카드는 #/missions */
+.mission-rows { list-style: none; padding: 0; margin: 8px 0 10px; border-top: 2px solid var(--ink); }
+.mission-rows li { display: grid; grid-template-columns: 1.4fr 1.6fr auto; gap: 8px 20px; align-items: center; padding: 14px 4px; border-bottom: 1px solid var(--line); }
+.mission-rows .mr-title { display: flex; flex-direction: column; gap: 2px; }
+.mission-rows .mr-runs { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+@media (max-width: 720px) { .mission-rows li { grid-template-columns: 1fr; } .mission-rows .btn { justify-self: start; } }

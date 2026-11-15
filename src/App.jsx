@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { isMaker } from './api.js';
 import { Header, Footer } from './ui/parts.jsx';
-import Home from './screens/Home.jsx';
+import Home, { Missions } from './screens/Home.jsx';
 import RunView from './screens/RunView.jsx';
 import Review from './screens/Review.jsx';
 import Placeholder from './screens/Placeholder.jsx';
@@ -27,6 +27,7 @@ const parse = () => {
   if (h.startsWith('/drill')) return { page: 'drill' };
   if (h.startsWith('/mock')) return { page: 'mock' };
   if (h.startsWith('/account')) return { page: 'account' };
+  if (h.startsWith('/missions')) return { page: 'missions' };
   return { page: 'home' };
 };
 
@@ -49,6 +50,7 @@ export default function App() {
     drill: <Drill key="daily" />,
     mock: <Drill key="mock" mode="mock" />,
     account: <Account />,
+    missions: <Missions />,
   }[route.page] ?? <Home />;
   return (<><Header maker={maker} page={route.page} />{page}<Footer /></>);
 }
