@@ -202,7 +202,9 @@ function ReviewRun({ runId }) {
           {mode === 'items' && !it && <section className="sheet review-item"><p>남은 질문이 없습니다.</p></section>}
           {mode === 'items' && it && (() => {
             const text = unitText(it.origin);
-            const w = it.wrongText && text.includes(it.wrongText) ? it.wrongText : '';
+            const isInstr = it.pattern === '지시 누락'; // 지시(분량·형식·빠진 항목) 문제는 문장 하나가 아니라 칸 전체를 단계 지시와 견준다
+            const picked = it.wrongText && text.includes(it.wrongText) ? it.wrongText : '';
+            const w = isInstr ? '' : picked;
             const st = run.stages.find((x) => x.key === it.origin.split('.')[0].split('#')[0]);
             const stNo = run.stages.indexOf(st) + 1;
             const whys = [...new Set(Object.values(it.byAudit ?? {}).map((x) => x.why).filter(Boolean))];
@@ -210,12 +212,16 @@ function ReviewRun({ runId }) {
             const memo = myMarks.find((m) => m.uid === it.origin);
             const pendingNow = it.review === 'pending';
             const answered = { approved: it.grade, edited: it.grade, added: it.grade, deleted: 'none' }[it.review];
+            // 이 질문에 앞서 남긴 메모(이전으로 돌아와도 보이게). 자동 처리 기록은 뺀다
+            const myNote = (draft.reviewLog ?? []).filter((l) => l.item === it.id && l.note && !String(l.action).startsWith('auto:')).at(-1)?.note ?? '';
             return (
             <section className="sheet review-item">
               <p className="li-head"><b>질문 {cur + 1} / {order.length}</b> <span className="muted small">· 작업 순서대로 · 남은 질문 {left.length}개</span>{' '}{pendingNow ? <span className="tag">아직 안 답함</span> : <span className="tag">답함 · 바꾸려면 다시 고르세요</span>}</p>
 
               <p className="rv-q">AI 동료가 {stNo}단계 「{st?.name}」에서 쓴 글</p>
               <blockquote className="rv-unit">{w ? <>{text.slice(0, text.indexOf(w))}<mark className="rv-wrong">{w}</mark>{text.slice(text.indexOf(w) + w.length)}</> : text}</blockquote>
+              {isInstr && st?.instruction && <><p className="rv-q">이 단계 지시</p><blockquote className="rv-unit">{st.instruction}</blockquote>
+                {picked && <p className="small muted">감사가 예로 든 구절: 「{picked}」</p>}</>}
 
               <p className="rv-q">감사가 본 문제</p>
               {whys.length > 1 ? <ul className="rv-audits">{whys.map((x, i) => <li key={i}>{x}</li>)}</ul> : <p className="rv-why">{it.why}</p>}
@@ -226,8 +232,9 @@ function ReviewRun({ runId }) {
               </>}
 
               {memo && <div className="rv-mine small"><b>미영이 풀 때 이 글에 남긴 메모</b><p>{memo.note || '(메모 없이 빨간 줄만)'}</p></div>}
+              {myNote && <div className="rv-mine small"><b>이 질문에 남긴 검수 메모</b><p>{myNote}</p></div>}
 
-              <h3 className="rv-ask">{w ? <>노란 부분 「{w.length > 50 ? `${w.slice(0, 50)}…` : w}」</> : '이 글'}이 원자료와 견줘 틀렸나요?</h3>
+              <h3 className="rv-ask">{isInstr ? '이 글이 단계 지시를 어겼나요?' : <>{w ? <>노란 부분 「{w.length > 50 ? `${w.slice(0, 50)}…` : w}」</> : '이 글'}이 원자료와 견줘 틀렸나요?</>}</h3>
               <div className="rv-choices">
                 {[...ANSWERS, ...(it.spread?.length ? [LATER] : [])].map((g) => (
                   <button key={g.k} className={`btn rv-choice ${answered === g.k || later?.id === it.id && g.k === 'later' ? 'on' : ''}`} disabled={busy} onClick={() => answer(it, g.k)}>
