@@ -176,8 +176,8 @@ function Mission({ m, solved }) {
           <ul className="run-list">
             {m.fixed.map((f, fi) => (
               <li key={f.runId}>
-                <a href={`#/r/${f.runId}`}>{m.fixed.length > 1 ? `${fi + 1}번 · ` : ''}{fmtDate(f.at)} {modelName(f.worker)} 판</a> <LedgerTag status={f.ledger.status} version={f.ledger.version} />
-                {solved[f.runId] && <span className="tag">풀었음</span>}
+                <a href={`#/r/${f.runId}`}>{m.fixed.length > 1 ? `${fi + 1}번 · ` : ''}{fmtDate(f.at)} {modelName(f.worker)} 판</a>{f.ledger.status !== 'reviewed' && <> <LedgerTag status={f.ledger.status} version={f.ledger.version} /></>}
+                {solved[f.runId] && <> <a className="tag" href={`#/r/${f.runId}`}>이 브라우저에서 풂 · 내 결과 보기</a></>}
               </li>
             ))}
           </ul>
@@ -186,7 +186,7 @@ function Mission({ m, solved }) {
           <h3>직접 맡기기 <span className="muted small">팀장 모드</span></h3>
           <p className="small">단계를 나누고 지시를 써서 AI 동료에게 직접 맡깁니다. 끝나면 작업 회사를 뺀 두 회사가 감사해 장부를 만듭니다(사람 확인 전). 한 곳이 시간 안에 끝나지 않으면 끝난 감사만 반영합니다.</p>
           <a className="btn" href={`#/lead/${m.id}`}>이 미션 맡기기</a>
-          {Object.keys(m.baseline ?? {}).length > 0 && <p className="small muted">기준: {Object.entries(m.baseline).map(([s, b]) => `${STYLE_KO[s] ?? s} ${b.n}판 평균 최종본 A ${b.meanAfinal}개`).join(' · ')} (AI 감사 기준)</p>}
+          {Object.keys(m.baseline ?? {}).length > 0 && <p className="small muted">기준: {Object.entries(m.baseline).map(([s, b]) => `${STYLE_KO[s] ?? s} ${b.n}판 평균 최종본 A ${b.meanAfinal}개`).join(' · ')} (사람 검수한 판은 확정 장부, 나머지는 AI 감사 기준)</p>}
         </div>
       </div>
     </Slide>

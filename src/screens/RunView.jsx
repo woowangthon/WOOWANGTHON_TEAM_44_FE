@@ -90,7 +90,7 @@ export default function RunView({ id }) {
     <main className="run">
       <p className="band">
         이 작업 기록은 {fmtDate(meta.at)} <b>{modelName(meta.worker)}</b>({meta.company})가 실제로 수행한 결과입니다. 결과물은 손대지 않았습니다.
-        {meta.of > 1 ? ` 같은 미션을 ${meta.of}번 돌린 판 가운데 하나입니다.` : ''} <LedgerTag status={meta.ledger.status} version={meta.ledger.version} />
+        {meta.of > 1 ? ` 같은 미션을 ${meta.of}번 돌린 판 가운데 하나입니다.` : ''}{meta.ledger.status !== 'reviewed' && <> <LedgerTag status={meta.ledger.status} version={meta.ledger.version} /></>}
       </p>
       {!done && retry.prev(id) && <p className="notice">다시 풀기 중입니다. 정답을 본 뒤의 풀이라 다른 사람 분포와 내 실력 유형 통계에는 넣지 않고, 결과 화면만 새로 보여 드립니다. <button className="linkish" onClick={() => { retry.cancel(id); location.reload(); }}>앞 결과로 돌아가기</button></p>}
       {done?.pending && <p className="notice">{done.message} <a href="#/review">검수 화면으로</a></p>}
@@ -99,12 +99,12 @@ export default function RunView({ id }) {
         <section className="todo-card" aria-label="할 일">
           <h2 className="todo-title">할 일</h2>
           <ol className="todo-steps">
-            <li><b>원자료</b>(넓은 화면은 왼쪽 칸, 휴대폰은 맨 아래 「원자료 보기」)가 정답의 근거입니다. 그 밖의 글은 AI 동료가 그 원자료로 만든 결과물입니다.</li>
-            <li>결과물 맨 위 최종본({finals.map((st) => `${st.key} ${st.name}`).join(', ')})부터 원자료와 한 문장씩 견주며, 원자료와 다르거나 원자료에 없는 말을 찾으세요.</li>
-            <li>틀린 문장을 누르면 빨간 줄을 그을 수 있습니다. 확실한지 의심인지도 고릅니다.</li>
-            <li>다 봤으면 맨 아래에서 승인 또는 반려를 결재하세요.</li>
+            <li><b>원자료</b>(넓은 화면은 왼쪽 칸, 휴대폰은 맨 아래 「원자료 보기」)가 정답의 근거입니다. 나머지 글은 AI 동료가 원자료로 만든 결과물이고, S1부터 S{stages.length}까지 단계마다 앞 단계 결과를 넘겨받아 만들었습니다.</li>
+            <li><b>최종본부터 봅니다.</b> 실제로 밖에 나가는 글이 맨 위 최종본({finals.map((st) => `${st.key} ${st.name}`).join(', ')})이기 때문입니다. 원자료와 한 문장씩 견주며 원자료와 다르거나 원자료에 없는 말을 찾으세요.</li>
+            <li><b>이상한 문장을 찾으면 앞 단계로 거슬러 올라갑니다.</b> 접혀 있는 앞 단계를 펼쳐 그 내용이 어느 단계에서 처음 틀렸는지 찾고, 그 칸에 「이 오류는 여기서 처음 생겼다」를 표시하세요. 「멈췄어야 할 곳」을 맞힌 것으로 칩니다.</li>
+            <li>틀린 문장을 누르면 빨간 줄을 그을 수 있습니다. 확실한지 의심인지도 고릅니다. 다 봤으면 맨 아래에서 승인 또는 반려를 결재하세요.</li>
           </ol>
-          <p className="todo-note">처음이라 어렵게 느껴지면 <a href="#/mock">모의 문제집</a>(문장 7개, 약 5분)으로 감부터 잡아도 됩니다. 틀린 곳이 없을 수도 있습니다. 앞 단계를 펼쳐 오류가 처음 생긴 곳을 짚으면 「멈췄어야 할 곳」을 맞힌 것입니다. 어느 원자료 문단이 화면에 보였는지는 이 판의 결과 피드백에만 씁니다.</p>
+          <p className="todo-note">만든 순서는 S1 → S{stages.length}, 읽는 순서는 그 반대입니다. 틀린 곳이 없을 수도 있습니다. 처음이라 어렵게 느껴지면 <a href="#/mock">모의 문제집</a>(문장 7개, 약 5분)으로 감부터 잡아도 됩니다. 어느 원자료 문단이 화면에 보였는지는 이 판의 결과 피드백에만 씁니다.</p>
         </section>
         <p className="brief">{mission.brief}</p>
         <div className="work-grid">

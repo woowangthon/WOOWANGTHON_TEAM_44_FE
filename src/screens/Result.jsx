@@ -106,7 +106,7 @@ export default function Result({ run, done }) {
         <section className="verdict" aria-label="한 줄 판정">
           <p className="verdict-line"><Verdict g={g} /></p>
           <div className="score-row score-main">
-            <div className="score-box"><b>{g.counts.foundA}/{g.counts.A}</b><span>A등급 오류 찾음</span></div>
+            <div className="score-box">{g.counts.A ? <><b>{g.counts.foundA}/{g.counts.A}</b><span>A등급 오류 찾음</span></> : <><b>없음</b><span>이 판의 A등급 오류</span></>}</div>
             <div className="score-box"><b>{g.decisionOk ? '맞음' : '틀림'}</b><span>결재 판정</span></div>
           </div>
           <p className="small score-sub">헛짚음(장부에 없는 곳) {g.counts.falseMarks}개 · 처음 생긴 곳 짚음 {g.counts.originable ? `${g.counts.originHits}/${g.counts.originable}` : '— (사람이 확정한 항목이 없어 세지 않음)'} · 기록용 합계 {g.score}점/100</p>

@@ -26,7 +26,7 @@ export default function Me() {
         <h2 style={{ marginTop: 0 }}>오류 유형별로 찾은 정도</h2>
         {skill?.patterns?.length ? (<>
           <ul className="skill-list">{[...skill.patterns].sort((a, b) => (a.early - b.early) || (a.mastery - b.mastery)).map((p) => (
-            <li key={p.pattern} className={p.early ? 'early' : undefined}><span>{p.pattern}</span><span className="skill-bar" aria-hidden="true"><span style={{ width: `${Math.round(p.mastery * 100)}%` }} /></span><span className="skill-n">찾음 {p.found}/{p.n}{p.early ? ' · 아직 이름' : ''}{(() => { const o = others?.patterns?.find((x) => x.pattern === p.pattern); return o?.n ? <em className="muted"> · 다른 사람 {o.rate}%({o.found}/{o.n})</em> : null; })()}</span></li>
+            <li key={p.pattern} className={p.early ? 'early' : undefined}><span>{p.pattern}</span><span className="skill-bar" aria-hidden="true"><span style={{ width: `${Math.round(p.mastery * 100)}%` }} /></span><span className="skill-n">찾음 {p.found}/{p.n}{p.early ? ' · 표본 적음' : ''}{(() => { const o = others?.patterns?.find((x) => x.pattern === p.pattern); return o?.n ? <em className="muted"> · 다른 사람 {o.rate}%({o.found}/{o.n})</em> : null; })()}</span></li>
           ))}</ul>
           <p className="small muted">막대 = (찾음 + 1) ÷ (만난 수 + 2). 처음엔 절반에서 시작해 판이 쌓일수록 실제 비율에 가까워집니다. 3번 미만 만난 유형은 회색 막대로 둡니다. {skill.runs}판 기준, 최신 사람 검수 장부로 다시 셉니다.</p>
           <Tips patterns={skill.patterns} habits={habits} />

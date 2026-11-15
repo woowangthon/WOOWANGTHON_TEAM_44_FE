@@ -45,7 +45,7 @@ export function PenNote({ children }) {
 
 /** 장부 상태 표시: 화면·README·발표에서 같은 말을 쓴다 */
 export function LedgerTag({ status, version }) {
-  if (status === 'reviewed') return <span className="ltag ltag-ok">정답표: 사람 검수 완료 · 장부 {version}판</span>;
-  if (status === 'ai') return <span className="ltag ltag-ai">AI 감사(두 회사 이상) · 사람 확인 전{version ? ` · 장부 ${version}판` : ''}</span>;
+  if (status === 'reviewed') return <span className="ltag ltag-ok">정답표 v{version}(사람 검수)</span>;
+  if (status === 'ai') return <span className="ltag ltag-ai">사람 확인 전 · 채점하지 않음</span>;
   return <span className="ltag">장부 없음</span>;
 }

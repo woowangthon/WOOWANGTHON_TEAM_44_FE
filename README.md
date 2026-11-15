@@ -6,7 +6,7 @@ AI 동료(실제 모델)가 공공 보도자료로 일을 처리하고, 오류�
 
 | | |
 |---|---|
-| 서비스 | https://redline.parkmiyeong.com (가입 없이 모든 기능, 계정은 선택, 휴대폰 가능 · 같은 배포의 Vercel 주소 https://woowangthon-44-fe.vercel.app) |
+| 서비스 | https://redline.parkmiyeong.com (가입 없이 모든 기능, 계정은 선택, 휴대폰 폭 지원 · 같은 배포의 Vercel 주소 https://woowangthon-44-fe.vercel.app) |
 | 시연 영상 | https://youtu.be/CIWTnZF4lcw |
 | API 저장소 | https://github.com/woowangthon/WOOWANGTHON_TEAM_44_BE |
 | 팀 | 2026 AI 우왕톤 44팀 그라파이트(1인: 기획·판단·검수는 사람, 설계·구현 보조는 Claude Code) |
