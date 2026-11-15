@@ -36,7 +36,7 @@ export default function Drill({ mode = 'daily' }) {
       <h1>{NAME}</h1>
       <div className="sheet">
         <p>{d.reason ?? '오늘 풀 문항이 없습니다.'}</p>
-        {d.locked && <p><a className="btn btn-primary" href="#/">판 하나 먼저 풀기</a> <a className="btn" href="#/mock">모의 문제집부터</a></p>}
+        {d.locked && <p className="row-btns">{d.unlock?.length ? d.unlock.map((u) => <a key={u.runId} className="btn btn-primary" href={`#/r/${u.runId}`}>「{u.title}」 풀기</a>) : <a className="btn btn-primary" href="#/">판 하나 먼저 풀기</a>}<a className="btn" href="#/mock">모의 문제집부터</a></p>}
         <p className="small muted">짧은 연습은 결재까지 마친 판의 문장으로만 냅니다. 판을 풀기 전에 정답이 새지 않게 하려는 것입니다.</p>
       </div>
     </main>

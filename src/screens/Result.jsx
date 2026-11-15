@@ -159,7 +159,7 @@ export default function Result({ run, done }) {
       {ob && <Objection runId={run.meta.runId} answerId={answerId} ob={ob} items={items} onClose={() => setOb(null)} />}
       <Slide as="section" from="up" className="sheet" style={{ marginTop: 16 }} aria-label="이어서 연습">
         <h2 style={{ marginTop: 0 }}>이어서 연습</h2>
-        <p>이 판의 문장으로 「맞다 / 틀렸다」를 고르는 짧은 연습입니다. 하루 3문항입니다.</p>
+        <p>결재한 판의 문장으로 「맞다 / 틀렸다」를 고르는 짧은 연습입니다. 하루 3문항입니다. 문항이 아직 없는 판도 있어, 그때는 어느 판을 풀면 열리는지 알려 드립니다.</p>
         <p className="row-btns"><a className="btn btn-primary" href={`#/drill`}>짧은 연습 3문항</a><button className="btn" onClick={() => { retry.start(meta.runId, answerId); location.reload(); }}>이 판 다시 풀기</button></p>
         <p className="small muted">다시 풀기는 빨간 줄을 비우고 처음부터 엽니다. 점수는 결과 화면에만 나오고, 다른 사람 분포와 내 실력 유형 통계에는 첫 풀이만 넣습니다.</p>
       </Slide>
