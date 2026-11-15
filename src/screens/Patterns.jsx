@@ -19,7 +19,7 @@ export default function Patterns() {
           <h2>{p.pattern} <span className="small muted">사람 검수 {p.reviewed} · AI 감사 {p.ai}</span></h2>
           <p><b>확인 습관:</b> {p.habit}</p>
           <p className="small muted">작업 모델 회사별 {Object.entries(p.byCompany).map(([k, v]) => `${k} ${v}`).join(' · ')} / 맡긴 방식별 {Object.entries(p.byStyle).map(([k, v]) => `${STYLE_KO[k] ?? k} ${v}`).join(' · ')}</p>
-          {p.lockedExamples > 0 && <p className="small notice">이 유형의 실제 예문 {p.lockedExamples}개는 {p.lockedRuns.map((r) => <a key={r} href={`#/r/${r}`}>그 판</a>)}을 결재하면 열립니다.</p>}
+          {p.lockedExamples > 0 && <p className="small notice">이 유형의 실제 예문 {p.lockedExamples}개는 {p.lockedRuns.map((r, i) => <span key={r}>{i ? ' · ' : ''}<a href={`#/r/${r}`}>{p.lockedRuns.length > 1 ? `판 ${i + 1}` : '그 판'}</a></span>)}을 결재하면 열립니다.</p>}
           {p.examples.map((e, i) => (
             <div key={i} className="example">
               <p>{e.wrongText ? `「${e.wrongText}」` : <span className="muted">(틀린 문장이 아니라 빠뜨린 내용)</span>} <span className="small muted">({modelName(e.worker)} 판 {e.origin}{e.spread.length ? ` → ${e.spread.join(' → ')}` : ''})</span></p>
