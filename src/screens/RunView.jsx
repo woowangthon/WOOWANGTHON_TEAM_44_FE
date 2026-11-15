@@ -1,7 +1,7 @@
 // 사수 모드: AI 동료가 실제로 끝낸 여러 단계 업무의 작업 기록을 검수한다.
 // 단위를 눌러 빨간 줄(패턴·근원·메모) → 승인/반려 → 결과(사람 검수 장부의 A등급으로 채점)
 import { useEffect, useRef, useState } from 'react';
-import { api, myAnswers, isMaker, modelName, fmtDate } from '../api.js';
+import { api, myAnswers, isMaker, modelName, fmtDate, retry } from '../api.js';
 import { DocHead, LedgerTag } from '../ui/doc.jsx';
 import { SourcePanel, SourceDock, StageBlock, MarkEditor } from '../ui/work.jsx';
 import { TraceContext, makeTrace } from '../ui/trace.js';
@@ -67,6 +67,7 @@ export default function RunView({ id }) {
     try {
       const r = await api.answer({ runId: id, marks: Object.entries(marks).map(([uid, m]) => ({ uid, ...m })), decision, reason, elapsedSec: (Date.now() - t0.current) / 1000, sourceViews: views.current, trace: trace.current?.toPayload() });
       myAnswers.set(id, r.answerId);
+      retry.end(id);
       dropDraft(id);
       setDone({ ...r, answer: { marks: Object.entries(marks).map(([uid, m]) => ({ uid, ...m })), sourceViews: views.current } });
       window.scrollTo(0, 0);
@@ -91,6 +92,7 @@ export default function RunView({ id }) {
         이 작업 기록은 {fmtDate(meta.at)} <b>{modelName(meta.worker)}</b>({meta.company})가 실제로 수행한 결과입니다. 결과물은 손대지 않았습니다.
         {meta.of > 1 ? ` 같은 미션을 ${meta.of}번 돌린 판 가운데 하나입니다.` : ''} <LedgerTag status={meta.ledger.status} version={meta.ledger.version} />
       </p>
+      {!done && retry.prev(id) && <p className="notice">다시 풀기 중입니다. 정답을 본 뒤의 풀이라 다른 사람 분포와 내 실력 유형 통계에는 넣지 않고, 결과 화면만 새로 보여 드립니다. <button className="linkish" onClick={() => { retry.cancel(id); location.reload(); }}>앞 결과로 돌아가기</button></p>}
       {done?.pending && <p className="notice">{done.message} <a href="#/review">검수 화면으로</a></p>}
       <div className="sheet">
         <DocHead id={id} title={mission.title} by={`오늘 ${mission.today} · 원자료 ${Object.keys(docs).length}건 · 단계 ${stages.length}개`} drafter="AI 동료" review={null} phoneHideApproval />

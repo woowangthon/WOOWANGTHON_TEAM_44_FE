@@ -44,7 +44,7 @@ export default function Me() {
       {shadow.length ? (
         <table className="eval-table">
           <thead><tr><th>#</th><th>판</th><th>A 찾음</th><th>헛짚음</th><th>판정</th><th>근거 보고 그음</th><th>시간</th></tr></thead>
-          <tbody>{shadow.map((x, i) => <tr key={x.id}><td>{i + 1}</td><td><a href={`#/r/${x.runId}`}>{x.runId}</a></td><td>{x.A != null ? `${x.foundA}/${x.A}` : '검수 대기'}</td><td>{x.falseMarks ?? '—'}</td><td>{x.decisionOk == null ? '—' : x.decisionOk ? '맞음' : '틀림'}</td><td>{x.evidence ? `${x.evidence.checked ?? 0}/${x.evidence.found ?? 0}` : '—'}</td><td>{x.elapsedSec ? `${Math.round(x.elapsedSec / 60)}분` : '—'}</td></tr>)}</tbody>
+          <tbody>{shadow.map((x, i) => <tr key={x.id}><td>{i + 1}</td><td><a href={`#/r/${x.runId}`}>{x.runId}</a>{x.first === false ? <span className="small muted"> · 다시 풂</span> : null}</td><td>{x.A != null ? `${x.foundA}/${x.A}` : '검수 대기'}</td><td>{x.falseMarks ?? '—'}</td><td>{x.decisionOk == null ? '—' : x.decisionOk ? '맞음' : '틀림'}</td><td>{x.evidence ? `${x.evidence.checked ?? 0}/${x.evidence.found ?? 0}` : '—'}</td><td>{x.elapsedSec ? `${Math.round(x.elapsedSec / 60)}분` : '—'}</td></tr>)}</tbody>
         </table>
       ) : <p className="muted">아직 없습니다. <a href="#/">오늘의 연습</a>에서 시작하세요.</p>}
       {shadow.length >= 3 && <Trend rows={shadow.filter((x) => x.A)} />}
@@ -68,6 +68,7 @@ function Trend({ rows }) {
 
 /** 나와 다른 사람들 견주기: A를 찾은 비율, 결재를 맞힌 비율, 모의 문제집 */
 function Compare({ shadow, others, mock }) {
+  shadow = shadow.filter((x) => x.first !== false);
   const found = shadow.reduce((s, x) => s + (x.foundA ?? 0), 0); const all = shadow.reduce((s, x) => s + (x.A ?? 0), 0);
   const pct = (a, b) => (b ? Math.round((a / b) * 100) : null);
   if (!shadow.length && !others?.plays && !mock?.n) return null;

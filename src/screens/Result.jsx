@@ -1,6 +1,6 @@
 // 사수 모드 결과(놓친 것 따라가기): 한 줄 판정 → 오류가 번진 길·배운 것 → 놓친 A 카드(근거 칩·출처 칩·막아 보기) → 찾은 A·B·C(접기) → 작업 기록 다시 보기(S5→S1) → 이 정답표에 대해, 이의 제기
 import { useEffect, useState } from 'react';
-import { api, modelName, myAnswers, isMaker } from '../api.js';
+import { api, modelName, myAnswers, isMaker, retry } from '../api.js';
 import { RunCrowd } from '../ui/Crowd.jsx';
 import { DocHead, LedgerTag, Stamp } from '../ui/doc.jsx';
 import { SourcePanel, SourceDock, StageBlock, useDialog } from '../ui/work.jsx';
@@ -114,6 +114,7 @@ export default function Result({ run, done }) {
             <p className="muted">점수는 사람이 검수한 장부의 A등급(원자료와 대조하면 누구나 같은 결론이 나는 오류)으로만 매깁니다. 배점은 찾음 50 · 정확도 20 · 결재 20 · 처음 생긴 곳 10입니다. B·C는 판단이 갈릴 수 있어 참고로만 보여 드립니다. 헛짚음은 장부에 없는 곳에 그은 빨간 줄입니다.{splitMarks.length ? ' 판단이 갈리는 칸(한 감사만 오류가 옮겨졌다고 본 칸)에 그은 줄은 찾음에도 헛짚음에도 넣지 않습니다.' : ''}</p>
           </details>
         </section>
+        {(done.first === false || done.answer?.first === false) && <p className="notice">다시 푼 기록입니다. 정답을 본 뒤의 풀이라 아래 분포와 내 실력 유형 통계에는 첫 풀이만 들어갑니다.</p>}
         <RunCrowd crowd={done.crowd} mine={g.counts.foundA} maker={isMaker()} />
 
         <div className="result-top">
@@ -158,7 +159,8 @@ export default function Result({ run, done }) {
       <Slide as="section" from="up" className="sheet" style={{ marginTop: 16 }} aria-label="이어서 연습">
         <h2 style={{ marginTop: 0 }}>이어서 연습</h2>
         <p>이 판의 문장으로 「맞다 / 틀렸다」를 고르는 짧은 연습입니다. 하루 3문항입니다.</p>
-        <p><a className="btn btn-primary" href={`#/drill`}>짧은 연습 3문항</a></p>
+        <p className="row-btns"><a className="btn btn-primary" href={`#/drill`}>짧은 연습 3문항</a><button className="btn" onClick={() => { retry.start(meta.runId, answerId); location.reload(); }}>이 판 다시 풀기</button></p>
+        <p className="small muted">다시 풀기는 빨간 줄을 비우고 처음부터 엽니다. 점수는 결과 화면에만 나오고, 다른 사람 분포와 내 실력 유형 통계에는 첫 풀이만 넣습니다.</p>
       </Slide>
       <NextStep runId={meta.runId} />
     </main>

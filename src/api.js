@@ -31,6 +31,14 @@ export function isMaker() {
 export const myAnswers = {
   all: () => store.json('ss2:answers', {}),
   set(runId, answerId) { const a = myAnswers.all(); a[runId] = answerId; store.set('ss2:answers', JSON.stringify(a)); },
+  drop(runId) { const a = myAnswers.all(); delete a[runId]; store.set('ss2:answers', JSON.stringify(a)); },
+};
+/** 다시 풀기: 앞 결과(answerId)를 따로 두고 판을 새로 연다. 다시 푼 기록은 서버가 「첫 풀이 아님」으로 저장해 분포·내 실력 유형 통계에 넣지 않는다 */
+export const retry = {
+  prev: (runId) => store.get(`ss2:retryPrev:${runId}`),
+  start(runId, answerId) { store.set(`ss2:retryPrev:${runId}`, answerId); myAnswers.drop(runId); },
+  cancel(runId) { const p = retry.prev(runId); if (p) myAnswers.set(runId, p); store.set(`ss2:retryPrev:${runId}`, ''); },
+  end(runId) { store.set(`ss2:retryPrev:${runId}`, ''); },
 };
 export const reviewCode = { get: () => store.get('ss2:review') ?? '', set: (v) => store.set('ss2:review', v) };
 
