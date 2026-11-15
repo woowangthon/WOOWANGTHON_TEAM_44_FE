@@ -11,8 +11,8 @@ export default function Home() {
   const [error, setError] = useState('');
   useEffect(() => { api.missions().then(setData).catch((e) => setError(e.message)); }, []);
   const solved = myAnswers.all();
-  // 바로 풀 수 있는 판(사람 검수 완료)이 있는 미션을 먼저
-  const missions = [...(data?.missions ?? [])].sort((a, b) => (b.fixed.some((f) => f.playable) ? 1 : 0) - (a.fixed.some((f) => f.playable) ? 1 : 0) || b.fixed.length - a.fixed.length);
+  // 바로 풀 수 있는 판(사람 검수 완료)이 있는 미션을 먼저. 그 안에서는 서버 순서(data/fixed.json 순서, 첫 판 = G1)를 지킨다(판 수로 다시 정렬하면 첫 판이 바뀜)
+  const missions = [...(data?.missions ?? [])].sort((a, b) => (b.fixed.some((f) => f.playable) ? 1 : 0) - (a.fixed.some((f) => f.playable) ? 1 : 0));
   const playableOf = (m) => m.fixed.some((f) => f.playable);
   const ready = missions.filter(playableOf), waiting = missions.filter((m) => !playableOf(m));
   const mission = (m) => <Mission key={m.id} m={m} solved={solved} />;
@@ -174,9 +174,9 @@ function Mission({ m, solved }) {
           <h3>검수해 보기 <span className="muted small">사수 모드</span></h3>
           {!m.fixed.length && <p className="small muted">이 미션은 아직 검수할 판이 없습니다. 맡겨 보기(팀장 모드)는 할 수 있습니다.</p>}
           <ul className="run-list">
-            {m.fixed.map((f) => (
+            {m.fixed.map((f, fi) => (
               <li key={f.runId}>
-                <a href={`#/r/${f.runId}`}>{fmtDate(f.at)} {modelName(f.worker)} 판</a> <LedgerTag status={f.ledger.status} version={f.ledger.version} />
+                <a href={`#/r/${f.runId}`}>{m.fixed.length > 1 ? `${fi + 1}번 · ` : ''}{fmtDate(f.at)} {modelName(f.worker)} 판</a> <LedgerTag status={f.ledger.status} version={f.ledger.version} />
                 {solved[f.runId] && <span className="tag">풀었음</span>}
               </li>
             ))}
