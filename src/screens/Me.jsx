@@ -78,11 +78,11 @@ function Compare({ shadow, others, mock }) {
       <table className="eval-table">
         <thead><tr><th></th><th>A등급 오류 찾은 비율</th><th>결재 맞힘</th></tr></thead>
         <tbody>
-          <tr><td><b>나</b> ({shadow.length}판)</td><td>{shadow.length ? `${pct(found, all)}% (${found}/${all})` : '—'}</td><td>{shadow.length ? `${shadow.filter((x) => x.decisionOk).length}/${shadow.length}` : '—'}</td></tr>
+          <tr><td><b>나</b> ({shadow.length}판)</td>{shadow.length ? <><td>{`${pct(found, all)}% (${found}/${all})`}</td><td>{`${shadow.filter((x) => x.decisionOk).length}/${shadow.length}`}</td></> : <td colSpan={2} className="muted">아직 채점된 판이 없습니다</td>}</tr>
           <tr><td>다른 사람 {others?.people ?? 0}명 ({others?.plays ?? 0}판)</td><td>{others?.foundRate != null ? `${others.foundRate}%` : '—'}</td><td>{others?.decisionOkRate != null ? `${others.decisionOkRate}%` : '—'}</td></tr>
         </tbody>
       </table>
-      {mock?.n > 0 && <p className="small">모의 문제집: {mock.n}문항 중 {mock.correct}개 맞힘. 다른 사람들 분포는 <a href="#/mock">모의 문제집</a> 끝 화면에 있습니다.</p>}
+      {mock?.n > 0 && <p className="small">모의 문제집: {mock.n}문항 중 {mock.correct}개 맞힘(문항마다 처음 답 기준). 다른 사람들 분포는 <a href="#/mock">모의 문제집</a> 끝 화면에 있습니다.</p>}
       <p className="small muted">처음 하는 사람은 대개 최종본만 읽고 「틀린 데가 없다」고 봅니다. 다른 사람 숫자가 낮은 것도 그래서입니다. {(others?.people ?? 0) < 5 ? `아직 ${others?.people ?? 0}명이라 우연이 큽니다.` : ''}</p>
     </section>
   );

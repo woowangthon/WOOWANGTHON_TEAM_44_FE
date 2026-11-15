@@ -120,7 +120,8 @@ function MockEnd({ d, score, fbs }) {
         <p className="small muted">끝까지 푼 다른 사람 {c.finished}명의 분포입니다(만든 사람·나 제외, 문항마다 첫 답만). 순위는 두지 않습니다.</p>
         <CrowdHist hist={c.hist} mine={k} label="맞힘" />
         {c.finished < 5 && <p className="small muted">아직 {c.finished}명이라 우연이 큽니다.</p>}
-      </>) : <p className="small muted">아직 끝까지 푼 다른 사람이 없습니다. 내 기록이 첫 기록이 됩니다.</p>}
+      </>) : <p className="small muted">아직 끝까지 푼 다른 사람이 없습니다.{fbs.some((f) => f.repeat) ? '' : ' 내 기록이 첫 기록이 됩니다.'}</p>}
+      {fbs.some((f) => f.repeat) && <p className="small muted">전에 푼 문항이 있어 이번 답은 분포에 넣지 않습니다(문항마다 첫 답만 셉니다).</p>}
       {missed.length > 0 && (
         <div className="learned">
           <h3 style={{ marginTop: 0 }}>요령</h3>

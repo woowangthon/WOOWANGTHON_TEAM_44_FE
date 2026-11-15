@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { isMaker } from './api.js';
-import { BRAND } from './brand.js';
 import { Header, Footer } from './ui/parts.jsx';
 import Home from './screens/Home.jsx';
 import RunView from './screens/RunView.jsx';
@@ -37,7 +36,7 @@ export default function App() {
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
-  useEffect(() => { document.title = `${BRAND.name} · ${BRAND.sub}`; }, []);
+  // 문서 제목은 index.html(공유 미리보기 og:title과 같은 첫 화면 질문)을 그대로 쓴다
   const page = {
     run: <RunView key={route.id} id={route.id} />,
     review: <Review key={route.id ?? 'q'} runId={route.id} />,

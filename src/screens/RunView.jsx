@@ -156,7 +156,7 @@ export default function RunView({ id }) {
           </div>
           {decision === 'reject' && (
             <label>반려 사유(AI 동료에게 돌려보낼 말)
-              <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} placeholder="예: S2 판정표에서 하이테크과정 나이 조건이 원자료와 다릅니다. 원자료 A를 다시 대조해 고쳐 주세요." />
+              <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} placeholder="예: S2에서 조건 하나가 원자료와 다르게 옮겨졌습니다. 그 단계를 원자료와 다시 대조해 고쳐 주세요." />
             </label>
           )}
           {error && <p className="error">{error}</p>}

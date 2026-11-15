@@ -12,6 +12,7 @@ const refs = (it) => [it.origin, ...(it.spread ?? [])];
 export default function Result({ run, done }) {
   const { meta, mission, docs, stages } = run;
   const { result: g, ledger: L, before, changed, answerId } = done;
+  const retried = done.first === false || done.answer?.first === false; // 다시 푼 기록(분포에는 첫 풀이만 들어 있다)
   const [focus, setFocus] = useState(null);
   const [focusTick, setFocusTick] = useState(0); // 근거 칸을 누를 때마다 휴대폰 폭에서 원자료 서랍을 연다
   const [ob, setOb] = useState(null);
@@ -114,8 +115,8 @@ export default function Result({ run, done }) {
             <p className="muted">점수는 사람이 검수한 장부의 A등급(원자료와 대조하면 누구나 같은 결론이 나는 오류)으로만 매깁니다. 배점은 찾음 50 · 정확도 20 · 결재 20 · 처음 생긴 곳 10입니다. B·C는 판단이 갈릴 수 있어 참고로만 보여 드립니다. 헛짚음은 장부에 없는 곳에 그은 빨간 줄입니다.{splitMarks.length ? ' 판단이 갈리는 칸(한 감사만 오류가 옮겨졌다고 본 칸)에 그은 줄은 찾음에도 헛짚음에도 넣지 않습니다.' : ''}</p>
           </details>
         </section>
-        {(done.first === false || done.answer?.first === false) && <p className="notice">다시 푼 기록입니다. 정답을 본 뒤의 풀이라 아래 분포와 내 실력 유형 통계에는 첫 풀이만 들어갑니다.</p>}
-        <RunCrowd crowd={done.crowd} mine={g.counts.foundA} maker={isMaker()} />
+        {retried && <p className="notice">다시 푼 기록입니다. 정답을 본 뒤의 풀이라 다른 사람 분포와 내 실력 유형 통계에는 첫 풀이만 들어갑니다.</p>}
+        <RunCrowd crowd={done.crowd} mine={g.counts.foundA} maker={isMaker()} retried={retried} />
 
         <div className="result-top">
           <PathMap items={A} stages={stages} perOf={perOf} onPick={pick} />

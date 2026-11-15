@@ -64,7 +64,7 @@ export default function Home() {
           <Slide as="a" from="left" fromSm="left" fromLg="left" delay={0} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
             <span className="pcard-k">01 · 잡기</span>
             <b>어디서 처음 틀렸나</b>
-            <span>{firstMission ? `「${firstMission.title}」` : '여러 단계 작업 기록'}을 최종본부터 원자료와 대조해 빨간 줄을 긋고 결재합니다. 결과에서 놓친 오류가 처음 생긴 단계와 옮겨 적힌 길이 지도로 나옵니다.</span>
+            <span>{firstMission ? `「${firstMission.title}」 작업 기록` : '여러 단계 작업 기록'}을 최종본부터 원자료와 대조해 빨간 줄을 긋고 결재합니다. 결과에서 놓친 오류가 처음 생긴 단계와 옮겨 적힌 길이 지도로 나옵니다.</span>
           </Slide>
           <Slide as="a" from="left" fromSm="right" fromLg="up" delay={60} className="pcard" href={firstRun ? `#/r/${firstRun.runId}` : '#/'}>
             <span className="pcard-k">02 · 돌아보기</span>
