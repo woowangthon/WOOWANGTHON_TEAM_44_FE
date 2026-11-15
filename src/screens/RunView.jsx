@@ -83,7 +83,17 @@ export default function RunView({ id }) {
     setTimeout(() => document.getElementById(isEarlier ? `es-${key}` : `st-${key}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 30);
   };
   const block = (st, hint) => <StageBlock key={st.key} stage={st} marks={marks} onPick={playable && !done ? (uid, quote) => setEditing({ uid, quote }) : undefined} notes={notes} hint={hint} />;
-  const choose = (d) => { setDecision(d); trace.current?.push('decide', d); };
+  // 최종본에 그은 빨간 줄(승인하면 「틀린 곳이 없다」는 뜻이 되므로 따로 센다)
+  const finalKeys = new Set(finals.map((st) => st.key));
+  const finalMarks = Object.keys(marks).filter((uid) => finalKeys.has(uid.split('.')[0].split('#')[0]));
+  const choose = (d) => {
+    setDecision(d); trace.current?.push('decide', d);
+    // 반려 사유를 비워 두면 빨간 줄 위치로 초안을 채운다(사유 쓰기가 번거로워 승인을 고르지 않게)
+    if (d === 'reject' && !reason.trim() && Object.keys(marks).length) {
+      const ks = Object.keys(marks);
+      setReason(`빨간 줄을 그은 곳(${ks.slice(0, 3).join(', ')}${ks.length > 3 ? ` 외 ${ks.length - 3}곳` : ''})을 원자료와 다시 대조해 고쳐 주세요.`);
+    }
+  };
 
   return (
     <TraceContext.Provider value={trace.current}>
@@ -102,7 +112,7 @@ export default function RunView({ id }) {
             <li><b>원자료</b>(넓은 화면은 왼쪽 칸, 휴대폰은 맨 아래 「원자료 보기」)가 정답의 근거입니다. 나머지 글은 AI 동료가 원자료로 만든 결과물이고, S1부터 S{stages.length}까지 단계마다 앞 단계 결과를 넘겨받아 만들었습니다.</li>
             <li><b>최종본부터 봅니다.</b> 실제로 밖에 나가는 글이 맨 위 최종본({finals.map((st) => `${st.key} ${st.name}`).join(', ')})이기 때문입니다. 원자료와 한 문장씩 견주며 원자료와 다르거나 원자료에 없는 말을 찾으세요.</li>
             <li><b>이상한 문장을 찾으면 앞 단계로 거슬러 올라갑니다.</b> 접혀 있는 앞 단계를 펼쳐 그 내용이 어느 단계에서 처음 틀렸는지 찾고, 그 칸에 「이 오류는 여기서 처음 생겼다」를 표시하세요. 「멈췄어야 할 곳」을 맞힌 것으로 칩니다.</li>
-            <li>틀린 문장을 누르면 빨간 줄을 그을 수 있습니다. 확실한지 의심인지도 고릅니다. 다 봤으면 맨 아래에서 승인 또는 반려를 결재하세요.</li>
+            <li>틀린 문장을 누르면 빨간 줄을 그을 수 있습니다. 확실한지 의심인지도 고릅니다. 다 봤으면 맨 아래에서 결재하세요. <b>최종본에 틀린 곳이 하나라도 남았으면 반려, 없으면 승인</b>입니다.</li>
           </ol>
           <p className="todo-note">만든 순서는 S1 → S{stages.length}, 읽는 순서는 그 반대입니다. 틀린 곳이 없을 수도 있습니다. 처음이라 어렵게 느껴지면 <a href="#/mock">모의 문제집</a>(문장 7개, 약 5분)으로 감부터 잡아도 됩니다. 어느 원자료 문단이 화면에 보였는지는 이 판의 결과 피드백에만 씁니다.</p>
         </section>
@@ -148,12 +158,15 @@ export default function RunView({ id }) {
 
       {!done && (
         <section className="decision sheet" aria-label="결재">
-          <p className="decision-q">빨간 줄 {Object.keys(marks).length}개를 그었습니다. 최종본을 이대로 내보내도 될까요?</p>
+          <p className="decision-q">빨간 줄 {Object.keys(marks).length}개를 그었습니다. 최종본에 틀린 곳이 하나라도 남아 있으면 <b>반려</b>, 없으면 <b>승인</b>입니다.</p>
           {!playable && <p className="error">이 판은 아직 사람 검수 전이라 채점할 수 없습니다.</p>}
           <div className="decision-btns" role="group" aria-label="결재">
-            <button className={`decide decide-ok ${decision === 'approve' ? 'on' : ''}`} aria-pressed={decision === 'approve'} onClick={() => choose('approve')} disabled={!playable}>승인<span>이대로 내보냅니다</span></button>
-            <button className={`decide decide-no ${decision === 'reject' ? 'on' : ''}`} aria-pressed={decision === 'reject'} onClick={() => choose('reject')} disabled={!playable}>반려<span>고쳐 오게 돌려보냅니다</span></button>
+            <button className={`decide decide-ok ${decision === 'approve' ? 'on' : ''}`} aria-pressed={decision === 'approve'} onClick={() => choose('approve')} disabled={!playable}>승인<span>틀린 곳이 없어 이대로 내보냅니다</span></button>
+            <button className={`decide decide-no ${decision === 'reject' ? 'on' : ''}`} aria-pressed={decision === 'reject'} onClick={() => choose('reject')} disabled={!playable}>반려<span>틀린 곳이 있어 고쳐 오게 돌려보냅니다</span></button>
           </div>
+          {decision === 'approve' && finalMarks.length > 0 && (
+            <p className="notice" role="alert">최종본에 빨간 줄 {finalMarks.length}개를 그은 채 승인하려 합니다. 승인은 「최종본에 틀린 곳이 없다」는 뜻입니다. 확실히 틀린 곳이 있다면 반려가 맞습니다. <button className="linkish" onClick={() => choose('reject')}>반려로 바꾸기</button></p>
+          )}
           {decision === 'reject' && (
             <label>반려 사유(AI 동료에게 돌려보낼 말)
               <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} placeholder="예: S2에서 조건 하나가 원자료와 다르게 옮겨졌습니다. 그 단계를 원자료와 다시 대조해 고쳐 주세요." />
